@@ -51,6 +51,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Protect app pages BEFORE static middleware serves them
+app.get('/app.html', (req, res, next) => {
+  if (!req.isAuthenticated()) return res.redirect('/');
+  if (!req.user.username) return res.redirect('/setup.html');
+  next();
+});
+
+app.get('/setup.html', (req, res, next) => {
+  if (!req.isAuthenticated()) return res.redirect('/');
+  if (req.user.username) return res.redirect('/app.html');
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Passport Google Strategy ─────────────────────────────────────────────────
@@ -103,18 +117,7 @@ app.use('/api/users', userRoutes);
 app.use('/api', messageRoutes);
 app.use('/api/groups', groupRoutes);
 
-// Protect app pages
-app.get('/app.html', (req, res, next) => {
-  if (!req.isAuthenticated()) return res.redirect('/');
-  if (!req.user.username) return res.redirect('/setup.html');
-  next();
-});
-
-app.get('/setup.html', (req, res, next) => {
-  if (!req.isAuthenticated()) return res.redirect('/');
-  if (req.user.username) return res.redirect('/app.html');
-  next();
-});
+// Routes that were here are moved up above express.static
 
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 setupSocketHandlers(io);
