@@ -413,6 +413,8 @@ function setupNav() {
       dashboardView.classList.add('hidden');
 
       if (view === 'chats') {
+        // Hide the right panel on mobile so they see the chat list
+        document.querySelector('.app-layout').classList.remove('mobile-chat-open');
         if (activeChat) {
           chatView.classList.remove('hidden');
         } else {
@@ -420,9 +422,11 @@ function setupNav() {
         }
       } else if (view === 'contacts') {
         contactsView.classList.remove('hidden');
+        document.querySelector('.app-layout').classList.add('mobile-chat-open');
         renderContacts();
       } else if (view === 'dashboard') {
         dashboardView.classList.remove('hidden');
+        document.querySelector('.app-layout').classList.add('mobile-chat-open');
       }
     });
   });
