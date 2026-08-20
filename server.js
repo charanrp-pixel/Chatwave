@@ -17,6 +17,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
 const groupRoutes = require('./routes/groups');
+const friendRoutes = require('./routes/friends');
 const { setupSocketHandlers } = require('./socket/handlers');
 
 const app = express();
@@ -114,6 +115,7 @@ io.use((socket, next) => {
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/friends', friendRoutes);
 app.use('/api', messageRoutes);
 app.use('/api/groups', groupRoutes);
 

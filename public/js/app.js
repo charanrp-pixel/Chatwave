@@ -7,7 +7,8 @@ let socket = null;
 let activeChat = null; // { type: 'dm'|'group', id, name, participantId? }
 let conversations = [];
 let groups = [];
-let allUsers = [];
+let friends = [];
+let pendingRequests = [];
 let unreadCounts = {};
 let selectedMembers = new Set();
 let typingTimer = null;
@@ -38,7 +39,7 @@ async function init() {
   setupSocketListeners();
 
   // Load data
-  await Promise.all([loadConversations(), loadGroups(), loadAllUsers()]);
+  await Promise.all([loadConversations(), loadGroups(), loadFriends()]);
   renderConversationList();
 
   // Nav
@@ -131,11 +132,15 @@ async function loadGroups() {
   } catch (e) { console.error('Load groups error:', e); }
 }
 
-async function loadAllUsers() {
+async function loadFriends() {
   try {
-    const res = await fetch('/api/users');
-    if (res.ok) allUsers = await res.json();
-  } catch (e) { console.error('Load users error:', e); }
+    const res = await fetch('/api/friends');
+    if (res.ok) {
+      const data = await res.json();
+      friends = data.friends || [];
+      pendingRequests = data.pending || [];
+    }
+  } catch (e) { console.error('Load friends error:', e); }
 }
 
 // ─── Render Conversation List ─────────────────────────────────────────────
@@ -205,7 +210,7 @@ function renderConversationList(filter = '') {
   // Update stats
   document.getElementById('statConversations').textContent = conversations.length;
   document.getElementById('statGroups').textContent = groups.length;
-  document.getElementById('statOnline').textContent = allUsers.filter(u => u.is_online && u.id !== currentUser.id).length;
+  document.getElementById('statOnline').textContent = friends.filter(u => u.is_online).length;
 
   list.innerHTML = items.map(item => {
     const isActive = activeChat?.type === item.type && activeChat?.id === item.id;
@@ -432,27 +437,112 @@ function setupNav() {
   });
 }
 
-// ─── Contacts ──────────────────────────────────────────────────────────────
+// ─── Contacts / Friends ────────────────────────────────────────────────────
 function renderContacts() {
-  const list = document.getElementById('contactsList');
-  const others = allUsers.filter(u => u.id !== currentUser.id);
-  if (others.length === 0) {
-    list.innerHTML = '<p class="empty-state">No other users registered yet.</p>';
-    return;
+  const friendsListEl = document.getElementById('contactsList');
+  const pendingContainer = document.getElementById('pendingRequestsContainer');
+  const pendingListEl = document.getElementById('pendingRequestsList');
+  const pendingBadge = document.getElementById('pendingBadge');
+
+  // Render pending requests
+  if (pendingRequests.length > 0) {
+    pendingContainer.classList.remove('hidden');
+    pendingBadge.textContent = pendingRequests.length;
+    pendingListEl.innerHTML = pendingRequests.map(r => `
+      <div class="contact-item">
+        <div class="contact-avatar">
+          ${r.avatar_url ? `<img src="${r.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (r.display_name || r.username || '?')[0].toUpperCase()}
+        </div>
+        <div class="contact-info">
+          <div class="contact-name">${escHtml(r.display_name || r.username)}</div>
+          <div class="contact-handle">@${escHtml(r.username || 'unknown')}</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="acceptFriendRequest(${r.request_id})">Accept</button>
+          <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="rejectFriendRequest(${r.request_id})">Reject</button>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    pendingContainer.classList.add('hidden');
   }
-  list.innerHTML = others.map(u => `
-    <div class="contact-item">
-      <div class="contact-avatar">
-        ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (u.display_name || u.username || '?')[0].toUpperCase()}
+
+  // Render friends
+  if (friends.length === 0) {
+    friendsListEl.innerHTML = '<p class="empty-state">You have no friends yet. Add someone above!</p>';
+  } else {
+    friendsListEl.innerHTML = friends.map(u => `
+      <div class="contact-item">
+        <div class="contact-avatar">
+          ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (u.display_name || u.username || '?')[0].toUpperCase()}
+        </div>
+        <div class="contact-info">
+          <div class="contact-name">${escHtml(u.display_name || u.username)}</div>
+          <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
+        </div>
+        <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
+        <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
       </div>
-      <div class="contact-info">
-        <div class="contact-name">${escHtml(u.display_name || u.username)}</div>
-        <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
-      </div>
-      <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
-      <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
-    </div>
-  `).join('');
+    `).join('');
+  }
+}
+
+async function sendFriendRequest() {
+  const input = document.getElementById('addFriendInput');
+  const btn = document.getElementById('addFriendBtn');
+  const status = document.getElementById('addFriendStatus');
+  const username = input.value.trim();
+
+  if (!username) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('/api/friends/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    
+    if (res.ok) {
+      status.textContent = 'Friend request sent!';
+      status.style.color = 'var(--primary)';
+      input.value = '';
+    } else {
+      status.textContent = data.error || 'Failed to send request';
+      status.style.color = '#ef4444';
+    }
+  } catch (e) {
+    status.textContent = 'An error occurred';
+    status.style.color = '#ef4444';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Request';
+  }
+}
+
+async function acceptFriendRequest(id) {
+  try {
+    const res = await fetch(`/api/friends/accept/${id}`, { method: 'PUT' });
+    if (res.ok) {
+      await loadFriends();
+      renderContacts();
+      renderConversationList(); // Might need to update badges/online status
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function rejectFriendRequest(id) {
+  try {
+    const res = await fetch(`/api/friends/reject/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadFriends();
+      renderContacts();
+    }
+  } catch (e) { console.error(e); }
 }
 
 async function startDM(userId, name, avatar) {
@@ -503,9 +593,9 @@ function setupGroupModal() {
 
 function renderMembersList() {
   const list = document.getElementById('membersList');
-  const others = allUsers.filter(u => u.id !== currentUser.id);
+  const others = friends;
   if (others.length === 0) {
-    list.innerHTML = '<p class="empty-state-sm">No other users to add yet.</p>';
+    list.innerHTML = '<p class="empty-state-sm">No friends to add yet.</p>';
     return;
   }
   list.innerHTML = others.map(u => {
@@ -579,7 +669,7 @@ function setupSearch() {
 
 // ─── Online Status ─────────────────────────────────────────────────────────
 function updateUserOnline(userId, isOnline) {
-  const user = allUsers.find(u => u.id === parseInt(userId));
+  const user = friends.find(u => u.id === parseInt(userId));
   if (user) user.is_online = isOnline;
 
   if (activeChat?.type === 'dm' && activeChat.participantId === parseInt(userId)) {

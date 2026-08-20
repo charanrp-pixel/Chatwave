@@ -9,23 +9,7 @@ router.get('/me', isAuthenticated, (req, res) => {
   res.json({ id, email, username, display_name, avatar_url, is_online });
 });
 
-// List all users (for contacts & group creation)
-router.get('/', isAuthenticated, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT id, username, display_name, avatar_url, is_online, last_seen
-       FROM users
-       WHERE id != $1 AND username IS NOT NULL
-       ORDER BY is_online DESC, display_name ASC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
+// List all users endpoint removed for privacy reasons
 
 // Set username (first-time setup)
 router.post('/setup-username', isAuthenticated, async (req, res) => {
