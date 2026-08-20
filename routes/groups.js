@@ -127,4 +127,24 @@ router.get('/:id/members', requireAuth, async (req, res) => {
   }
 });
 
+// Delete group / Leave group
+router.delete('/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  try {
+    const groupRes = await pool.query('SELECT created_by FROM groups WHERE id = $1', [id]);
+    if (groupRes.rows.length === 0) return res.status(404).json({ error: 'Group not found' });
+
+    if (groupRes.rows[0].created_by === userId) {
+      await pool.query('DELETE FROM groups WHERE id = $1', [id]);
+    } else {
+      await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [id, userId]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete group error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -130,4 +130,23 @@ router.get('/conversations/:id/messages', isAuthenticated, async (req, res) => {
   }
 });
 
+// Delete a conversation
+router.delete('/conversations/:id', isAuthenticated, async (req, res) => {
+  const conversationId = parseInt(req.params.id);
+  const userId = req.user.id;
+  try {
+    const result = await pool.query(
+      'DELETE FROM conversations WHERE id = $1 AND (participant1_id = $2 OR participant2_id = $2) RETURNING *',
+      [conversationId, userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete conversation error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

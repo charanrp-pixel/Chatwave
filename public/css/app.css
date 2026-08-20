@@ -245,6 +245,23 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .conv-item:hover { background: var(--conv-hover); }
 .conv-item.active { background: var(--conv-active); }
 
+.conv-delete-btn {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.conv-item:hover .conv-delete-btn { opacity: 1; }
+.conv-delete-btn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+@media (max-width: 768px) {
+  .conv-delete-btn { opacity: 0.7; }
+}
+
 .conv-avatar-wrap { position: relative; flex-shrink: 0; }
 .conv-avatar {
   width: 46px; height: 46px;

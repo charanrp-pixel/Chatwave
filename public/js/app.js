@@ -271,6 +271,15 @@ function renderConversationList(filter = '') {
       ? `startDM(${item.id}, '${escHtml(item.name)}', '${escHtml(item.avatar || '')}')`
       : `openChat('${item.type}', ${item.id}, '${escHtml(item.name)}', ${item.participantId || 'null'}, '${escHtml(item.avatar || '')}', '${escHtml(item.sub || '')}')`;
 
+    const deleteBtnHtml = item.type !== 'new_dm'
+      ? `<button class="conv-delete-btn" title="Delete Chat" onclick="deleteChat('${item.type}', ${item.id}, event)">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <polyline points="3 6 5 6 21 6"></polyline>
+             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+           </svg>
+         </button>`
+      : '';
+
     return `<div class="conv-item ${isActive ? 'active' : ''}" 
                onclick="${onclickAction}">
       ${avatarHtml}
@@ -285,6 +294,7 @@ function renderConversationList(filter = '') {
         </div>
         ${item.sub ? `<div class="conv-meta">${escHtml(item.sub)}</div>` : ''}
       </div>
+      ${deleteBtnHtml}
     </div>`;
   }).join('');
 }
@@ -788,7 +798,43 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// ─── Logout ────────────────────────────────────────────────────────────────
+// ─── Logout & Delete Chat ──────────────────────────────────────────────────
+async function deleteChat(type, id, event) {
+  if (event) event.stopPropagation();
+  const confirmMsg = type === 'dm'
+    ? 'Are you sure you want to delete this chat?'
+    : 'Are you sure you want to leave / delete this group?';
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const url = type === 'dm' ? `/api/conversations/${id}` : `/api/groups/${id}`;
+    const res = await fetch(url, { method: 'DELETE' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error((data && data.error) || 'Failed to delete');
+    }
+
+    if (activeChat?.type === type && activeChat?.id === id) {
+      activeChat = null;
+      document.getElementById('chatView')?.classList.add('hidden');
+      document.getElementById('welcomeScreen')?.classList.remove('hidden');
+      document.querySelector('.app-layout')?.classList.remove('mobile-chat-open');
+    }
+
+    await Promise.all([loadConversations(), loadGroups()]);
+    renderConversationList();
+  } catch (err) {
+    console.error('Delete error:', err);
+    alert(`Could not delete: ${err.message || 'Server error'}`);
+  }
+}
+
+async function deleteCurrentChat() {
+  if (!activeChat) return;
+  await deleteChat(activeChat.type, activeChat.id);
+}
+
 async function logout() {
   try {
     const res = await fetch('/auth/logout', { method: 'POST' });
