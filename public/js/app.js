@@ -115,6 +115,13 @@ function setupSocketListeners() {
     renderContacts();
     renderConversationList();
   });
+
+  // Group creation real-time updates
+  socket.on('group:created', async ({ groupId }) => {
+    socket.emit('group:join', groupId);
+    await loadGroups();
+    renderConversationList();
+  });
 }
 
 function showTyping() {
@@ -685,22 +692,28 @@ async function createGroup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, memberIds: [...selectedMembers] }),
     });
-    if (!res.ok) throw new Error('Failed');
-    const group = await res.json();
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = (data && data.error) ? data.error : `${res.status} ${res.statusText}`;
+      throw new Error(msg);
+    }
+    const group = data;
 
-    document.getElementById('groupModal').classList.add('hidden');
+    document.getElementById('groupModal')?.classList.add('hidden');
     await loadGroups();
     renderConversationList();
 
+    // Auto-join socket group room
+    socket?.emit('group:join', group.id);
+
     // Switch to chats + open new group
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.getElementById('navChats').classList.add('active');
-    document.getElementById('welcomeScreen').classList.add('hidden');
-    document.getElementById('contactsView').classList.add('hidden');
+    document.getElementById('navChats')?.classList.add('active');
 
     openChat('group', group.id, group.name, null, null, `Group · ${group.member_count} members`);
   } catch (e) {
-    alert('Failed to create group. Try again.');
+    console.error('Create group error:', e);
+    alert(`Failed to create group: ${e.message || 'Try again.'}`);
   } finally {
     btn.textContent = 'Create Group';
     btn.disabled = false;

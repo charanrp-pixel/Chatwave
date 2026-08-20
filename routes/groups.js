@@ -39,6 +39,16 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    const io = req.app.get('io');
+    if (io) {
+      memberIds.forEach(mId => {
+        if (mId !== userId) {
+          io.to(`user:${mId}`).emit('group:created', { groupId: group.id });
+        }
+      });
+    }
+
     res.json({ ...group, member_count: memberIds.length + 1 });
   } catch (err) {
     await client.query('ROLLBACK');
