@@ -46,6 +46,13 @@ async function init() {
   setupGroupModal();
   setupMessageInput();
   setupSearch();
+  
+  const mobileBackBtn = document.getElementById('mobileBackBtn');
+  if (mobileBackBtn) {
+    mobileBackBtn.addEventListener('click', () => {
+      document.querySelector('.app-layout').classList.remove('mobile-chat-open');
+    });
+  }
 }
 
 // ─── Socket Listeners ──────────────────────────────────────────────────────
@@ -244,6 +251,7 @@ function updateConvPreview(type, id, content) {
 // ─── Open Chat ────────────────────────────────────────────────────────────
 async function openChat(type, id, name, participantId, avatar, sub) {
   activeChat = { type, id, name, participantId, avatar };
+  document.querySelector('.app-layout').classList.add('mobile-chat-open');
 
   // Clear unread
   unreadCounts[`${type === 'dm' ? 'dm' : 'group'}_${id}`] = 0;
