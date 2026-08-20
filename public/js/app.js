@@ -700,5 +700,19 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
+// ─── Logout ────────────────────────────────────────────────────────────────
+async function logout() {
+  try {
+    const res = await fetch('/auth/logout', { method: 'POST' });
+    if (res.ok) {
+      window.location.href = '/';
+    } else {
+      alert('Failed to logout');
+    }
+  } catch (e) {
+    console.error('Logout error:', e);
+  }
+}
+
 // ─── Start ─────────────────────────────────────────────────────────────────
 init();
