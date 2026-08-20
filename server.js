@@ -119,11 +119,29 @@ setupSocketHandlers(io);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 async function start() {
-  await initializeDatabase();
+  try {
+    await initializeDatabase();
+  } catch (err) {
+    console.error('⚠️  Database init failed (app will still start):', err.message);
+  }
+
   server.listen(PORT, () => {
     console.log(`🚀 Chat server running on port ${PORT}`);
     console.log(`   Local: http://localhost:${PORT}`);
   });
+
+  server.on('error', (err) => {
+    console.error('❌ Server error:', err);
+  });
 }
+
+// Catch unhandled errors so Render doesn't show 502
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled Rejection:', reason);
+});
 
 start().catch(console.error);
