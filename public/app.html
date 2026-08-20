@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatWave</title>
+  <meta name="description" content="ChatWave — Your real-time chat application">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+
+    <!-- ── Sidebar ─────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="user-profile">
+          <img id="myAvatar" class="user-avatar" src="" alt="Your avatar" style="display:none">
+          <div id="myAvatarPlaceholder" class="user-avatar-placeholder" style="display:none">?</div>
+          <div class="user-info">
+            <div class="user-name" id="myUsername">Loading...</div>
+            <div class="user-status">Online</div>
+          </div>
+          <button class="btn-logout" id="logoutBtn">Sign out</button>
+        </div>
+
+        <div class="search-container" id="searchContainer">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            class="search-input"
+            id="searchInput"
+            placeholder="Search users..."
+            autocomplete="off"
+          >
+          <div class="search-results" id="searchResults"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">Messages</div>
+      <div class="conversations-list" id="conversationsList">
+        <div class="empty-conversations" id="emptyConversations">
+          <div class="empty-icon">💬</div>
+          <div class="empty-text">No conversations yet.<br>Search for a user to start chatting!</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Chat Panel ──────────────────────────────── -->
+    <main class="chat-panel" id="chatPanel">
+      <!-- Empty state -->
+      <div class="chat-empty-state" id="chatEmptyState">
+        <div class="empty-icon">👋</div>
+        <h2>Welcome to ChatWave</h2>
+        <p>Select a conversation or search for a user to start chatting</p>
+      </div>
+
+      <!-- Active chat (hidden initially) -->
+      <div id="activeChat" style="display:none; display:flex; flex-direction:column; height:100%; display:none">
+        <div class="chat-header" id="chatHeader">
+          <button class="back-btn" id="backBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+            Back
+          </button>
+          <div class="chat-header-avatar-wrap">
+            <img id="chatHeaderAvatar" class="chat-header-avatar" src="" alt="" style="display:none">
+            <div id="chatHeaderAvatarPlaceholder" class="chat-header-avatar-placeholder" style="display:none">?</div>
+            <div class="online-dot" id="chatHeaderOnlineDot" style="display:none"></div>
+          </div>
+          <div class="chat-header-info">
+            <div class="chat-header-name" id="chatHeaderName"></div>
+            <div class="chat-header-status" id="chatHeaderStatus">Offline</div>
+          </div>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+          <div class="loading-messages" id="messagesLoading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <textarea
+              id="messageInput"
+              class="chat-input"
+              placeholder="Type a message..."
+              rows="1"
+              maxlength="2000"
+            ></textarea>
+            <button class="btn-send" id="sendBtn" disabled title="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

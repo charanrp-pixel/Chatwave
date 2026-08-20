@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Your Username — ChatWave</title>
+  <meta name="description" content="Choose your ChatWave username to get started.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="setup-page">
+    <div class="setup-card">
+      <img id="avatarImg" class="setup-avatar" src="" alt="Your profile picture" style="display:none">
+      <div id="avatarPlaceholder" class="user-avatar-placeholder" style="width:80px;height:80px;font-size:28px;margin:0 auto 24px;display:none">?</div>
+
+      <h1 class="setup-title">Choose a Username</h1>
+      <p class="setup-subtitle" id="setupGreeting">Welcome! Pick a username so others can find and chat with you.</p>
+
+      <form id="usernameForm">
+        <div class="form-group">
+          <label class="form-label" for="usernameInput">Username</label>
+          <input
+            type="text"
+            id="usernameInput"
+            class="form-input"
+            placeholder="e.g. cool_dev_42"
+            maxlength="20"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+          >
+          <div class="form-hint">3–20 characters. Letters, numbers, and underscores only.</div>
+          <div class="form-error" id="usernameError"></div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn">Set Username & Start Chatting →</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      const res = await fetch('/auth/me');
+      const data = await res.json();
+
+      if (!data.user) return window.location.href = '/';
+      if (data.user.username) return window.location.href = '/app.html';
+
+      currentUser = data.user;
+
+      // Show avatar
+      if (data.user.avatar_url) {
+        const img = document.getElementById('avatarImg');
+        img.src = data.user.avatar_url;
+        img.style.display = 'block';
+      } else {
+        const placeholder = document.getElementById('avatarPlaceholder');
+        placeholder.textContent = data.user.display_name?.[0]?.toUpperCase() || '?';
+        placeholder.style.display = 'flex';
+      }
+
+      document.getElementById('setupGreeting').textContent =
+        `Welcome, ${data.user.display_name}! Pick a username so others can find and chat with you.`;
+    }
+
+    const form = document.getElementById('usernameForm');
+    const input = document.getElementById('usernameInput');
+    const errorEl = document.getElementById('usernameError');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Live validation
+    input.addEventListener('input', () => {
+      const val = input.value;
+      const valid = /^[a-zA-Z0-9_]{3,20}$/.test(val);
+      errorEl.style.display = 'none';
+      input.style.borderColor = val.length >= 3 ? (valid ? 'var(--online-color)' : 'var(--danger)') : '';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = input.value.trim();
+
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        errorEl.textContent = 'Username must be 3-20 characters (letters, numbers, underscores only)';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      errorEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/users/setup-username', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          window.location.href = '/app.html';
+        } else {
+          errorEl.textContent = data.error || 'Failed to set username';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Set Username & Start Chatting →';
+        }
+      } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Set Username & Start Chatting →';
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
