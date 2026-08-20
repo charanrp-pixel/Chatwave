@@ -104,6 +104,17 @@ function setupSocketListeners() {
   // Online status
   socket.on('user:online', ({ userId }) => updateUserOnline(userId, true));
   socket.on('user:offline', ({ userId }) => updateUserOnline(userId, false));
+
+  // Friend System real-time notifications
+  socket.on('friend:request_received', async () => {
+    await loadFriends();
+    renderContacts();
+  });
+  socket.on('friend:request_accepted', async () => {
+    await loadFriends();
+    renderContacts();
+    renderConversationList();
+  });
 }
 
 function showTyping() {
@@ -290,17 +301,21 @@ async function openChat(type, id, name, participantId, avatar, sub) {
   unreadCounts[`${type === 'dm' ? 'dm' : 'group'}_${id}`] = 0;
 
   // UI setup
-  document.getElementById('welcomeScreen').classList.add('hidden');
-  document.getElementById('chatView').classList.remove('hidden');
-  document.getElementById('contactsView').classList.add('hidden');
-  document.getElementById('dashboardView').classList.add('hidden');
+  document.getElementById('welcomeScreen')?.classList.add('hidden');
+  document.getElementById('chatView')?.classList.remove('hidden');
+  document.getElementById('contactsView')?.classList.add('hidden');
+  document.getElementById('dashboardView')?.classList.add('hidden');
 
-  document.getElementById('chatName').textContent = name;
+  const chatNameEl = document.getElementById('chatName');
+  if (chatNameEl) chatNameEl.textContent = name;
   const chatAvatar = document.getElementById('chatAvatar');
-  if (avatar) { chatAvatar.src = avatar; chatAvatar.style.display = 'block'; }
-  else { chatAvatar.style.display = 'none'; }
-  document.getElementById('chatSub').textContent = sub || (type === 'dm' ? 'Offline' : '');
-  document.getElementById('chatOnlineDot').classList.toggle('hidden', type !== 'dm');
+  if (chatAvatar) {
+    if (avatar) { chatAvatar.src = avatar; chatAvatar.style.display = 'block'; }
+    else { chatAvatar.style.display = 'none'; }
+  }
+  const chatSubEl = document.getElementById('chatSub');
+  if (chatSubEl) chatSubEl.textContent = sub || (type === 'dm' ? 'Online' : '');
+  document.getElementById('chatOnlineDot')?.classList.toggle('hidden', type !== 'dm');
 
   // Load messages
   const messagesArea = document.getElementById('messagesArea');
@@ -739,8 +754,8 @@ function updateUserOnline(userId, isOnline) {
   if (activeChat?.type === 'dm' && activeChat.participantId === parseInt(userId)) {
     const dot = document.getElementById('chatOnlineDot');
     const sub = document.getElementById('chatSub');
-    dot.classList.toggle('hidden', !isOnline);
-    sub.textContent = isOnline ? 'Online' : 'Last seen recently';
+    if (dot) dot.classList.toggle('hidden', !isOnline);
+    if (sub) sub.textContent = isOnline ? 'Online' : 'Last seen recently';
   }
   renderConversationList();
 }

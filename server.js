@@ -111,6 +111,9 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
+// ─── Express & Socket setup ───────────────────────────────────────────────────
+app.set('io', io);
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/auth', authRoutes);

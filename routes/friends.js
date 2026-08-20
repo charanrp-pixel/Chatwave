@@ -72,6 +72,11 @@ router.post('/request', isAuthenticated, async (req, res) => {
       VALUES ($1, $2, 'pending')
     `, [senderId, receiverId]);
 
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${receiverId}`).emit('friend:request_received');
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -94,6 +99,12 @@ router.put('/accept/:id', isAuthenticated, async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Request not found or already accepted' });
+    }
+
+    const updatedReq = result.rows[0];
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${updatedReq.sender_id}`).emit('friend:request_accepted');
     }
 
     res.json({ success: true });
