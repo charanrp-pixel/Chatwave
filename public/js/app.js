@@ -185,6 +185,26 @@ function renderConversationList(filter = '') {
     });
   });
 
+  // Include friends who don't have an active conversation yet
+  const existingDmIds = new Set(conversations.map(c => c.other_user_id));
+  friends.forEach(f => {
+    if (existingDmIds.has(f.id)) return; // Already in the list
+    const name = f.display_name || f.username || 'Unknown';
+    if (filter && !name.toLowerCase().includes(filter.toLowerCase()) && !f.username.toLowerCase().includes(filter.toLowerCase())) return;
+    items.push({
+      type: 'new_dm',
+      id: f.id, // passing the user id instead of conversation id
+      name,
+      avatar: f.avatar_url,
+      sub: `@${f.username}`,
+      preview: 'Start a new conversation',
+      time: null, // will sort to bottom
+      unread: 0,
+      isOnline: f.is_online,
+      participantId: f.id,
+    });
+  });
+
   // Sort by latest message
   items.sort((a, b) => {
     if (!a.time && !b.time) return 0;
@@ -229,8 +249,12 @@ function renderConversationList(filter = '') {
            ${item.isOnline ? '<span class="conv-online"></span>' : ''}
          </div>`;
 
+    const onclickAction = item.type === 'new_dm'
+      ? `startDM(${item.id}, '${escHtml(item.name)}', '${escHtml(item.avatar || '')}')`
+      : `openChat('${item.type}', ${item.id}, '${escHtml(item.name)}', ${item.participantId || 'null'}, '${escHtml(item.avatar || '')}', '${escHtml(item.sub || '')}')`;
+
     return `<div class="conv-item ${isActive ? 'active' : ''}" 
-               onclick="openChat('${item.type}', ${item.id}, '${escHtml(item.name)}', ${item.participantId || 'null'}, '${escHtml(item.avatar || '')}', '${escHtml(item.sub || '')}')">
+               onclick="${onclickAction}">
       ${avatarHtml}
       <div class="conv-body">
         <div class="conv-top">
