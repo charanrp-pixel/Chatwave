@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
 
 const { pool, initializeDatabase } = require('./db');
@@ -31,25 +30,16 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// ─── Session Store ───────────────────────────────────────────────────────────
-const pgStore = new pgSession({
-  pool,
-  tableName: 'session',
-  createTableIfMissing: true,
-});
-pgStore.on('error', (err) => {
-  console.error('⚠️  Session store error:', err.message);
-});
-
+// ─── Session (Memory Store — simple and reliable) ─────────────────────────────────
 const sessionMiddleware = session({
-  store: pgStore,
   secret: process.env.SESSION_SECRET || 'dev-secret-change-this',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   }
 });
 
