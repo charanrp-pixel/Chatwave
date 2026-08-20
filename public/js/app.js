@@ -232,27 +232,31 @@ function renderConversationList(filter = '') {
   });
 
   if (items.length === 0) {
-    empty.classList.remove('hidden');
-    list.innerHTML = '';
-    list.appendChild(empty);
+    if (list) {
+      list.innerHTML = `<div class="empty-state" id="convEmptyState"><p>No conversations yet.<br/>Start chatting from Contacts!</p></div>`;
+    }
     return;
   }
-  empty.classList.add('hidden');
 
   // Update total unread badge
   const totalUnread = items.reduce((sum, i) => sum + i.unread, 0);
   const badge = document.getElementById('totalUnreadBadge');
-  if (totalUnread > 0) {
-    badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
+  if (badge) {
+    if (totalUnread > 0) {
+      badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
   }
 
   // Update stats
-  document.getElementById('statConversations').textContent = conversations.length;
-  document.getElementById('statGroups').textContent = groups.length;
-  document.getElementById('statOnline').textContent = friends.filter(u => u.is_online).length;
+  const statConv = document.getElementById('statConversations');
+  if (statConv) statConv.textContent = conversations.length;
+  const statGroups = document.getElementById('statGroups');
+  if (statGroups) statGroups.textContent = groups.length;
+  const statOnline = document.getElementById('statOnline');
+  if (statOnline) statOnline.textContent = friends.filter(u => u.is_online).length;
 
   list.innerHTML = items.map(item => {
     const isActive = activeChat?.type === item.type && activeChat?.id === item.id;
@@ -472,26 +476,26 @@ function setupNav() {
       const contactsView = document.getElementById('contactsView');
       const dashboardView = document.getElementById('dashboardView');
 
-      welcomeScreen.classList.add('hidden');
-      chatView.classList.add('hidden');
-      contactsView.classList.add('hidden');
-      dashboardView.classList.add('hidden');
+      welcomeScreen?.classList.add('hidden');
+      chatView?.classList.add('hidden');
+      contactsView?.classList.add('hidden');
+      dashboardView?.classList.add('hidden');
 
       if (view === 'chats') {
         // Hide the right panel on mobile so they see the chat list
-        document.querySelector('.app-layout').classList.remove('mobile-chat-open');
+        document.querySelector('.app-layout')?.classList.remove('mobile-chat-open');
         if (activeChat) {
-          chatView.classList.remove('hidden');
+          chatView?.classList.remove('hidden');
         } else {
-          welcomeScreen.classList.remove('hidden');
+          welcomeScreen?.classList.remove('hidden');
         }
       } else if (view === 'contacts') {
-        contactsView.classList.remove('hidden');
-        document.querySelector('.app-layout').classList.add('mobile-chat-open');
+        contactsView?.classList.remove('hidden');
+        document.querySelector('.app-layout')?.classList.add('mobile-chat-open');
         renderContacts();
       } else if (view === 'dashboard') {
-        dashboardView.classList.remove('hidden');
-        document.querySelector('.app-layout').classList.add('mobile-chat-open');
+        dashboardView?.classList.remove('hidden');
+        document.querySelector('.app-layout')?.classList.add('mobile-chat-open');
       }
     });
   });
@@ -506,44 +510,48 @@ function renderContacts() {
 
   // Render pending requests
   if (pendingRequests.length > 0) {
-    pendingContainer.classList.remove('hidden');
-    pendingBadge.textContent = pendingRequests.length;
-    pendingListEl.innerHTML = pendingRequests.map(r => `
-      <div class="contact-item">
-        <div class="contact-avatar">
-          ${r.avatar_url ? `<img src="${r.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (r.display_name || r.username || '?')[0].toUpperCase()}
+    if (pendingContainer) pendingContainer.classList.remove('hidden');
+    if (pendingBadge) pendingBadge.textContent = pendingRequests.length;
+    if (pendingListEl) {
+      pendingListEl.innerHTML = pendingRequests.map(r => `
+        <div class="contact-item">
+          <div class="contact-avatar">
+            ${r.avatar_url ? `<img src="${r.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (r.display_name || r.username || '?')[0].toUpperCase()}
+          </div>
+          <div class="contact-info">
+            <div class="contact-name">${escHtml(r.display_name || r.username)}</div>
+            <div class="contact-handle">@${escHtml(r.username || 'unknown')}</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="acceptFriendRequest(${r.request_id})">Accept</button>
+            <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="rejectFriendRequest(${r.request_id})">Reject</button>
+          </div>
         </div>
-        <div class="contact-info">
-          <div class="contact-name">${escHtml(r.display_name || r.username)}</div>
-          <div class="contact-handle">@${escHtml(r.username || 'unknown')}</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="acceptFriendRequest(${r.request_id})">Accept</button>
-          <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="rejectFriendRequest(${r.request_id})">Reject</button>
-        </div>
-      </div>
-    `).join('');
+      `).join('');
+    }
   } else {
-    pendingContainer.classList.add('hidden');
+    if (pendingContainer) pendingContainer.classList.add('hidden');
   }
 
   // Render friends
-  if (friends.length === 0) {
-    friendsListEl.innerHTML = '<p class="empty-state">You have no friends yet. Add someone above!</p>';
-  } else {
-    friendsListEl.innerHTML = friends.map(u => `
-      <div class="contact-item">
-        <div class="contact-avatar">
-          ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (u.display_name || u.username || '?')[0].toUpperCase()}
+  if (friendsListEl) {
+    if (friends.length === 0) {
+      friendsListEl.innerHTML = '<p class="empty-state">You have no friends yet. Add someone above!</p>';
+    } else {
+      friendsListEl.innerHTML = friends.map(u => `
+        <div class="contact-item">
+          <div class="contact-avatar">
+            ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (u.display_name || u.username || '?')[0].toUpperCase()}
+          </div>
+          <div class="contact-info">
+            <div class="contact-name">${escHtml(u.display_name || u.username)}</div>
+            <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
+          </div>
+          <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
+          <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
         </div>
-        <div class="contact-info">
-          <div class="contact-name">${escHtml(u.display_name || u.username)}</div>
-          <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
-        </div>
-        <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
-        <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
-      </div>
-    `).join('');
+      `).join('');
+    }
   }
 }
 
