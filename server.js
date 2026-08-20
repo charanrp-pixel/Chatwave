@@ -9,6 +9,11 @@ const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
 
 const { pool, initializeDatabase } = require('./db');
+
+// Prevent unhandled pool errors from crashing the process
+pool.on('error', (err) => {
+  console.error('⚠️  Unexpected DB pool error:', err.message);
+});
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
@@ -27,12 +32,17 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // ─── Session Store ───────────────────────────────────────────────────────────
+const pgStore = new pgSession({
+  pool,
+  tableName: 'session',
+  createTableIfMissing: true,
+});
+pgStore.on('error', (err) => {
+  console.error('⚠️  Session store error:', err.message);
+});
+
 const sessionMiddleware = session({
-  store: new pgSession({
-    pool,
-    tableName: 'session',
-    createTableIfMissing: false,
-  }),
+  store: pgStore,
   secret: process.env.SESSION_SECRET || 'dev-secret-change-this',
   resave: false,
   saveUninitialized: false,
