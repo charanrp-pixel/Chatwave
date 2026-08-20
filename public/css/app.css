@@ -578,36 +578,68 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 
 /* Responsive Mobile Layout */
 @media (max-width: 768px) {
-  .app-layout { flex-direction: column-reverse; padding-bottom: 60px; }
+  .app-layout { flex-direction: column-reverse; }
   
-  /* Sidebar becomes bottom navigation */
+  /* Sidebar becomes fixed bottom navigation */
   .sidebar { 
-    width: 100%; height: 60px; 
+    width: 100%; 
+    height: 64px; 
     flex-direction: row; 
-    padding: 0 8px;
-    align-items: center; justify-content: space-between;
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    box-shadow: 0 -6px 18px rgba(16,24,40,0.06);
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border-color);
+    padding: 4px 6px;
+    align-items: center; 
+    justify-content: space-around;
+    position: fixed; 
+    left: 0; 
+    right: 0; 
+    bottom: 0; 
+    z-index: 9999 !important;
+    background: #1e2139 !important; /* Solid dark navy background */
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
-  .brand-name, .nav-item span, .sidebar-user-info, .sidebar-brand { display: none; }
-  .sidebar-nav { flex-direction: row; justify-content: space-around; flex: 1; gap: 0; }
-  .sidebar-bottom { flex-direction: row; justify-content: space-around; flex: 0.8; border: none; padding: 0; gap: 0; }
-  .nav-item { padding: 10px; border-radius: var(--radius-md); margin-bottom: 0; flex: 1; display: flex; justify-content: center; min-height: 48px; }
-  .sidebar-user { justify-content: center; padding: 0; border: none; margin-left: 0; display: none; }
-  .sidebar-avatar { width: 28px; height: 28px; }
 
-  /* Panels take up the rest of the screen (100vh - 60px bottom nav) */
-  .conv-panel { width: 100%; height: calc(100vh - 60px); position: relative; z-index: 1; }
-  .chat-area { width: 100%; height: calc(100vh - 60px); display: none; position: relative; z-index: 1; }
+  .brand-name, .sidebar-user-info, .sidebar-brand { display: none !important; }
+  .sidebar-nav { flex-direction: row; justify-content: space-around; flex: 3; gap: 2px; }
+  .sidebar-bottom { flex-direction: row; justify-content: space-around; flex: 2; border: none; padding: 0; gap: 2px; margin: 0; }
+  
+  .nav-item { 
+    padding: 6px 2px; 
+    border-radius: var(--radius-sm); 
+    margin-bottom: 0; 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    background: transparent;
+    cursor: pointer;
+  }
+  .nav-item.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  .nav-item span { 
+    display: block !important; 
+    font-size: 10px; 
+    font-weight: 500;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+  .nav-item svg {
+    width: 18px;
+    height: 18px;
+  }
 
-  /* Ensure content isn't covered by the fixed bottom nav */
-  .conv-panel, .chat-area { padding-bottom: 8px; }
+  .sidebar-user { display: none !important; }
 
-  /* When a chat is open */
-  .mobile-chat-open .conv-panel { display: none; }
-  .mobile-chat-open .chat-area { display: flex; }
+  /* Panels take up the rest of the screen (100vh - 64px bottom nav) */
+  .conv-panel { width: 100%; height: calc(100vh - 64px); position: relative; z-index: 1; }
+  .chat-area { width: 100%; height: calc(100vh - 64px); display: none; position: relative; z-index: 1; }
+
+  /* When a chat / view is open on mobile */
+  .mobile-chat-open .conv-panel { display: none !important; }
+  .mobile-chat-open .chat-area { display: flex !important; flex-direction: column; height: calc(100vh - 64px); }
   
   /* Show back button when chat is open */
   .mobile-back-btn { display: flex; }
@@ -617,8 +649,4 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   
   /* Adjust chat header padding */
   .chat-header { padding: 12px 16px; }
-  
-  /* Floating create button on mobile */
-  .conv-header-actions { margin-left: auto; }
-  .icon-btn.primary { width: 36px; height: 36px; }
 }
