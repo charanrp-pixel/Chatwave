@@ -66,7 +66,7 @@ function setupSocketListeners() {
 
   // DM messages
   socket.on('message:new', ({ conversationId, message }) => {
-    if (activeChat?.type === 'dm' && activeChat.id === conversationId) {
+    if (activeChat?.type === 'dm' && String(activeChat.id) === String(conversationId)) {
       appendMessage(message, 'dm');
       socket.emit('messages:read', { conversationId, senderId: message.sender_id });
     } else {
@@ -78,7 +78,7 @@ function setupSocketListeners() {
 
   // Group messages
   socket.on('group:message', ({ groupId, message }) => {
-    if (activeChat?.type === 'group' && activeChat.id === groupId) {
+    if (activeChat?.type === 'group' && String(activeChat.id) === String(groupId)) {
       appendMessage(message, 'group');
     } else {
       unreadCounts[`group_${groupId}`] = (unreadCounts[`group_${groupId}`] || 0) + 1;
@@ -89,16 +89,16 @@ function setupSocketListeners() {
 
   // Typing
   socket.on('typing:start', ({ conversationId }) => {
-    if (activeChat?.type === 'dm' && activeChat.id === conversationId) showTyping();
+    if (activeChat?.type === 'dm' && String(activeChat.id) === String(conversationId)) showTyping();
   });
   socket.on('typing:stop', ({ conversationId }) => {
-    if (activeChat?.type === 'dm' && activeChat.id === conversationId) hideTyping();
+    if (activeChat?.type === 'dm' && String(activeChat.id) === String(conversationId)) hideTyping();
   });
   socket.on('group:typing:start', ({ groupId }) => {
-    if (activeChat?.type === 'group' && activeChat.id === groupId) showTyping();
+    if (activeChat?.type === 'group' && String(activeChat.id) === String(groupId)) showTyping();
   });
   socket.on('group:typing:stop', ({ groupId }) => {
-    if (activeChat?.type === 'group' && activeChat.id === groupId) hideTyping();
+    if (activeChat?.type === 'group' && String(activeChat.id) === String(groupId)) hideTyping();
   });
 
   // Online status
