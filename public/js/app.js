@@ -580,9 +580,12 @@ async function startDM(userId, name, avatar) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
-    if (!res.ok) throw new Error('Failed');
-    const data = await res.json();
-    const conv = data.conversation || data;
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      const errMsg = payload && payload.error ? payload.error : `${res.status} ${res.statusText}`;
+      throw new Error(errMsg);
+    }
+    const conv = (payload && (payload.conversation || payload)) || payload;
 
     await loadConversations();
     renderConversationList();
@@ -593,7 +596,8 @@ async function startDM(userId, name, avatar) {
 
     openChat('dm', conv.id, name, userId, avatar, null);
   } catch (e) {
-    alert('Could not start conversation. Try again.');
+    console.error('startDM error:', e);
+    alert(`Could not start conversation. ${e.message || 'Try again.'}`);
   }
 }
 
@@ -690,9 +694,41 @@ async function createGroup() {
 
 // ─── Search ────────────────────────────────────────────────────────────────
 function setupSearch() {
-  document.getElementById('searchInput').addEventListener('input', (e) => {
-    renderConversationList(e.target.value);
+  const input = document.getElementById('searchInput');
+  const dropdown = document.getElementById('searchDropdown');
+
+  input.addEventListener('input', (e) => {
+    const q = e.target.value || '';
+    renderConversationList(q);
+    const term = q.trim().toLowerCase();
+    if (!term) {
+      dropdown.classList.add('hidden'); dropdown.innerHTML = '';
+      return;
+    }
+
+    const matches = friends.filter(f => {
+      const name = (f.display_name || f.username || '').toLowerCase();
+      return name.includes(term) || (f.username && f.username.toLowerCase().includes(term));
+    }).slice(0, 6);
+
+    if (matches.length === 0) { dropdown.classList.add('hidden'); dropdown.innerHTML = ''; return; }
+
+    dropdown.innerHTML = matches.map(f => {
+      const display = escHtml(f.display_name || f.username || '');
+      const avatar = escHtml(f.avatar_url || '');
+      const username = escHtml(f.username || '');
+      return `<div class="search-item" onclick="startDM(${f.id}, '${display}', '${avatar}')">
+        ${f.avatar_url ? `<img src="${avatar}" class="search-item-avatar" onerror="this.style.display='none'"/>` : ''}
+        <div class="search-item-body"><div class="search-item-name">${display}</div><div class="search-item-username">@${username}</div></div>
+      </div>`;
+    }).join('');
+
+    dropdown.classList.remove('hidden');
   });
+
+  // Keep clicks inside dropdown from blurring input
+  dropdown.addEventListener('mousedown', (e) => e.preventDefault());
+  input.addEventListener('blur', () => setTimeout(() => { dropdown.classList.add('hidden'); }, 150));
 }
 
 // ─── Online Status ─────────────────────────────────────────────────────────

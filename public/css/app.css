@@ -194,6 +194,26 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   outline: none; transition: all 0.15s;
 }
 .search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.search-dropdown {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 8px);
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.08);
+  z-index: 30;
+  max-height: 240px;
+  overflow: auto;
+}
+.search-dropdown.hidden { display: none; }
+.search-item { display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; }
+.search-item:hover { background: rgba(0,0,0,0.03); }
+.search-item-avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+.search-item-body { display:flex; flex-direction:column; }
+.search-item-name { font-weight:600; font-size:0.9rem; }
+.search-item-username { font-size:0.8rem; color:var(--text-muted); }
 
 .conv-list {
   flex: 1;
