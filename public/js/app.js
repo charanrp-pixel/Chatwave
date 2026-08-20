@@ -620,6 +620,11 @@ async function startDM(userId, name, avatar) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
+    if (res.status === 401) {
+      alert('Session expired. Please log in again.');
+      window.location.href = '/';
+      return;
+    }
     const payload = await res.json().catch(() => null);
     if (!res.ok) {
       const errMsg = payload && payload.error ? payload.error : `${res.status} ${res.statusText}`;
@@ -710,6 +715,11 @@ async function createGroup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, memberIds: [...selectedMembers] }),
     });
+    if (res.status === 401) {
+      alert('Session expired. Please log in again.');
+      window.location.href = '/';
+      return;
+    }
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = (data && data.error) ? data.error : `${res.status} ${res.statusText}`;
@@ -818,6 +828,11 @@ async function deleteChat(type, id, event) {
   try {
     const url = type === 'dm' ? `/api/conversations/${id}` : `/api/groups/${id}`;
     const res = await fetch(url, { method: 'DELETE' });
+    if (res.status === 401) {
+      alert('Session expired. Please log in again.');
+      window.location.href = '/';
+      return;
+    }
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       throw new Error((data && data.error) || 'Failed to delete');
