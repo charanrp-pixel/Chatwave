@@ -32,7 +32,11 @@ async function init() {
     avatarEl.style.display = 'none';
   }
   document.getElementById('sidebarUsername').textContent = currentUser.display_name || currentUser.username;
+  if (document.getElementById('sidebarHandle')) {
+    document.getElementById('sidebarHandle').textContent = `@${currentUser.username}`;
+  }
   document.getElementById('dashName').textContent = currentUser.display_name || currentUser.username;
+  document.getElementById('dashHandle').textContent = currentUser.username;
 
   // Connect socket
   socket = io({ auth: { userId: currentUser.id } });

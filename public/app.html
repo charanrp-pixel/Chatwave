@@ -58,12 +58,11 @@
       </button>
       <div class="sidebar-user">
         <div class="sidebar-avatar-wrap">
-          <img id="sidebarAvatar" src="" alt="You" class="sidebar-avatar" />
-          <span class="online-dot"></span>
+          <img id="sidebarAvatar" src="" alt="Avatar" />
         </div>
         <div class="sidebar-user-info">
-          <div id="sidebarUsername" class="sidebar-username">Loading...</div>
-          <div class="sidebar-status">Online</div>
+          <div class="sidebar-user-name" id="sidebarUsername">Name</div>
+          <div class="sidebar-user-handle" id="sidebarHandle" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">@username</div>
         </div>
       </div>
     </div>
@@ -206,6 +205,7 @@
     <div class="dashboard-view hidden" id="dashboardView">
       <div class="dashboard-content">
         <h2>👋 Hello, <span id="dashName">there</span>!</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">Your username is <strong style="color: var(--primary);">@<span id="dashHandle">username</span></strong>. Share this with your friends so they can add you!</p>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-number" id="statConversations">0</div>
