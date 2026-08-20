@@ -128,8 +128,8 @@ app.get('/setup.html', (req, res, next) => {
 setupSocketHandlers(io);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
-// Listen immediately so Render health check passes right away
-server.listen(PORT, () => {
+// Listen on 0.0.0.0 (required by Render)
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Chat server running on port ${PORT}`);
   console.log(`   Local: http://localhost:${PORT}`);
 
@@ -138,6 +138,10 @@ server.listen(PORT, () => {
     console.error('⚠️  DB init error (non-fatal):', err.message);
   });
 });
+
+// Required by Render to avoid 502 errors
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 120000;
 
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
