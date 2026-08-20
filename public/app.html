@@ -6,7 +6,7 @@
   <title>ChatWave — Messaging</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css?v=12" />
+  <link rel="stylesheet" href="/css/app.css?v=13" />
 </head>
 <body>
 
@@ -121,20 +121,22 @@
 
       <!-- Chat Header -->
       <div class="chat-header">
-        <button class="icon-btn mobile-back-btn" id="mobileBackBtn" title="Back">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <div class="chat-info">
-          <div class="chat-avatar-wrap">
-            <img id="chatAvatar" src="" alt="" class="chat-avatar" />
-            <span class="chat-online-dot hidden" id="chatOnlineDot"></span>
-          </div>
-          <div>
-            <div class="chat-name" id="chatName">Name</div>
-            <div class="chat-sub" id="chatSub">Online</div>
+        <div class="chat-header-left">
+          <button class="icon-btn mobile-back-btn" id="mobileBackBtn" title="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <div class="chat-info">
+            <div class="chat-avatar-wrap">
+              <img id="chatAvatar" src="" alt="" class="chat-avatar" />
+              <span class="chat-online-dot hidden" id="chatOnlineDot"></span>
+            </div>
+            <div>
+              <div class="chat-name" id="chatName">Name</div>
+              <div class="chat-sub" id="chatSub">Online</div>
+            </div>
           </div>
         </div>
         <div class="chat-actions">

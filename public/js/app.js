@@ -55,7 +55,13 @@ async function init() {
   const mobileBackBtn = document.getElementById('mobileBackBtn');
   if (mobileBackBtn) {
     mobileBackBtn.addEventListener('click', () => {
-      document.querySelector('.app-layout').classList.remove('mobile-chat-open');
+      activeChat = null;
+      document.querySelector('.app-layout')?.classList.remove('mobile-chat-open');
+      document.getElementById('chatView')?.classList.add('hidden');
+      document.getElementById('welcomeScreen')?.classList.remove('hidden');
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('navChats')?.classList.add('active');
+      renderConversationList();
     });
   }
 }
@@ -484,11 +490,9 @@ function setupNav() {
       if (view === 'chats') {
         // Hide the right panel on mobile so they see the chat list
         document.querySelector('.app-layout')?.classList.remove('mobile-chat-open');
-        if (activeChat) {
-          chatView?.classList.remove('hidden');
-        } else {
-          welcomeScreen?.classList.remove('hidden');
-        }
+        activeChat = null;
+        chatView?.classList.add('hidden');
+        welcomeScreen?.classList.remove('hidden');
       } else if (view === 'contacts') {
         contactsView?.classList.remove('hidden');
         document.querySelector('.app-layout')?.classList.add('mobile-chat-open');

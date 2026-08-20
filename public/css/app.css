@@ -336,7 +336,8 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   border-bottom: 1px solid #eeeef5;
   display: flex; justify-content: space-between; align-items: center;
 }
-.mobile-back-btn { display: none; margin-right: 12px; }
+.chat-header-left { display: flex; align-items: center; gap: 8px; }
+.mobile-back-btn { display: none; margin-right: 4px; }
 .chat-info { display: flex; align-items: center; gap: 12px; }
 .chat-avatar-wrap { position: relative; }
 .chat-avatar {
