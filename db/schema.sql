@@ -31,22 +31,31 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Session table (managed by connect-pg-simple)
-CREATE TABLE IF NOT EXISTS "session" (
-  "sid" VARCHAR NOT NULL COLLATE "default",
-  "sess" JSON NOT NULL,
-  "expire" TIMESTAMP(6) NOT NULL
+-- Group Chat Tables
+CREATE TABLE IF NOT EXISTS groups (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  created_by INTEGER REFERENCES users(id),
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey'
-  ) THEN
-    ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
-  END IF;
-END $$;
-CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(20) DEFAULT 'member',
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS group_messages (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+  sender_id INTEGER REFERENCES users(id),
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
@@ -55,3 +64,5 @@ CREATE INDEX IF NOT EXISTS idx_conversations_participant1 ON conversations(parti
 CREATE INDEX IF NOT EXISTS idx_conversations_participant2 ON conversations(participant2_id);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_group_messages_group_id ON group_messages(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);

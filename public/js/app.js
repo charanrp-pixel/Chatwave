@@ -1,547 +1,598 @@
-/* ══════════════════════════════════════════════════════════
-   ChatWave — Main Application Logic
-   ══════════════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════════════════════════════
+// ChatWave App — Frontend Logic
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ─── State ────────────────────────────────────────────────
 let currentUser = null;
 let socket = null;
-let activeConversationId = null;
-let activeOtherUser = null;
+let activeChat = null; // { type: 'dm'|'group', id, name, participantId? }
 let conversations = [];
+let groups = [];
+let allUsers = [];
+let unreadCounts = {};
+let selectedMembers = new Set();
 let typingTimer = null;
-let isTyping = false;
 
-// ─── DOM Refs ─────────────────────────────────────────────
-const conversationsList = document.getElementById('conversationsList');
-const emptyConversations = document.getElementById('emptyConversations');
-const chatEmptyState = document.getElementById('chatEmptyState');
-const activeChat = document.getElementById('activeChat');
-const messagesArea = document.getElementById('messagesArea');
-const messagesLoading = document.getElementById('messagesLoading');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const searchInput = document.getElementById('searchInput');
-const searchResults = document.getElementById('searchResults');
-const typingIndicator = document.getElementById('typingIndicator');
-const toastContainer = document.getElementById('toastContainer');
-const backBtn = document.getElementById('backBtn');
-const sidebar = document.getElementById('sidebar');
-const chatPanel = document.getElementById('chatPanel');
-
-// ─── Utilities ────────────────────────────────────────────
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
-}
-
-function formatTime(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (d.toDateString() === today.toDateString()) return 'Today';
-  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-}
-
-function formatConvTime(dateStr) {
-  const d = new Date(dateStr);
-  const today = new Date();
-  if (d.toDateString() === today.toDateString()) return formatTime(dateStr);
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
-
-function avatarHtml(url, name, size = 48, classes = '') {
-  if (url) {
-    return `<img src="${url}" alt="${name}" class="${classes}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;">`;
-  }
-  const initial = (name || '?')[0].toUpperCase();
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a78bfa);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.floor(size*0.38)}px;color:white;flex-shrink:0;" class="${classes}">${initial}</div>`;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ─── Init ─────────────────────────────────────────────────
+// ─── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    const res = await fetch('/auth/me');
-    const data = await res.json();
-    if (!data.user) return window.location.href = '/';
-    if (!data.user.username) return window.location.href = '/setup.html';
-    currentUser = data.user;
-    renderCurrentUser();
-    initSocket();
-    await loadConversations();
-    setupEventListeners();
-  } catch (err) {
-    showToast('Failed to load. Please refresh.', 'error');
+    const res = await fetch('/api/users/me');
+    if (!res.ok) { window.location.href = '/'; return; }
+    currentUser = await res.json();
+  } catch {
+    window.location.href = '/';
+    return;
   }
-}
 
-function renderCurrentUser() {
-  document.getElementById('myUsername').textContent = '@' + currentUser.username;
+  // Populate sidebar user info
+  const avatarEl = document.getElementById('sidebarAvatar');
   if (currentUser.avatar_url) {
-    const img = document.getElementById('myAvatar');
-    img.src = currentUser.avatar_url;
-    img.style.display = 'block';
-    document.getElementById('myAvatarPlaceholder').style.display = 'none';
+    avatarEl.src = currentUser.avatar_url;
   } else {
-    const ph = document.getElementById('myAvatarPlaceholder');
-    ph.textContent = currentUser.display_name?.[0]?.toUpperCase() || '?';
-    ph.style.display = 'flex';
+    avatarEl.style.display = 'none';
   }
-}
+  document.getElementById('sidebarUsername').textContent = currentUser.display_name || currentUser.username;
+  document.getElementById('dashName').textContent = currentUser.display_name || currentUser.username;
 
-// ─── Socket.io ────────────────────────────────────────────
-function initSocket() {
+  // Connect socket
   socket = io({ auth: { userId: currentUser.id } });
+  setupSocketListeners();
 
-  socket.on('connect', () => console.log('🔌 Socket connected'));
-  socket.on('disconnect', () => console.log('🔌 Socket disconnected'));
+  // Load data
+  await Promise.all([loadConversations(), loadGroups(), loadAllUsers()]);
+  renderConversationList();
 
-  socket.on('message:new', ({ conversationId, message }) => {
-    // Update conversation list
-    const conv = conversations.find(c => c.id === conversationId);
-    if (conv) {
-      conv.last_message = message.content;
-      conv.last_message_at = message.created_at;
-      if (conversationId !== activeConversationId) {
-        conv.unread_count = (parseInt(conv.unread_count) || 0) + 1;
-      }
-      renderConversations();
-    } else {
-      // New conversation from search — reload list
-      loadConversations();
-    }
-
-    // Append to active chat
-    if (conversationId === activeConversationId) {
-      appendMessage(message);
-      scrollToBottom();
-      // Mark as read immediately
-      socket.emit('messages:read', {
-        conversationId,
-        senderId: message.sender_id
-      });
-    }
-  });
-
-  socket.on('user:online', ({ userId }) => {
-    conversations.forEach(c => {
-      if (c.other_user_id === userId) c.other_is_online = true;
-    });
-    if (activeOtherUser?.id === userId) setHeaderOnline(true);
-    renderConversations();
-  });
-
-  socket.on('user:offline', ({ userId }) => {
-    conversations.forEach(c => {
-      if (c.other_user_id === userId) c.other_is_online = false;
-    });
-    if (activeOtherUser?.id === userId) setHeaderOnline(false);
-    renderConversations();
-  });
-
-  socket.on('typing:start', ({ conversationId }) => {
-    if (conversationId === activeConversationId) {
-      typingIndicator.classList.add('visible');
-      scrollToBottom();
-    }
-  });
-
-  socket.on('typing:stop', ({ conversationId }) => {
-    if (conversationId === activeConversationId) {
-      typingIndicator.classList.remove('visible');
-    }
-  });
-
-  socket.on('messages:read', ({ conversationId }) => {
-    if (conversationId === activeConversationId) {
-      document.querySelectorAll('.read-tick').forEach(el => el.classList.add('read'));
-    }
-  });
+  // Nav
+  setupNav();
+  setupGroupModal();
+  setupMessageInput();
+  setupSearch();
 }
 
-// ─── Conversations ────────────────────────────────────────
+// ─── Socket Listeners ──────────────────────────────────────────────────────
+function setupSocketListeners() {
+  socket.on('connect', () => console.log('🔌 Socket connected'));
+
+  // DM messages
+  socket.on('message:new', ({ conversationId, message }) => {
+    if (activeChat?.type === 'dm' && activeChat.id === conversationId) {
+      appendMessage(message, 'dm');
+      socket.emit('messages:read', { conversationId, senderId: message.sender_id });
+    } else {
+      unreadCounts[`dm_${conversationId}`] = (unreadCounts[`dm_${conversationId}`] || 0) + 1;
+    }
+    updateConvPreview('dm', conversationId, message.content);
+    renderConversationList();
+  });
+
+  // Group messages
+  socket.on('group:message', ({ groupId, message }) => {
+    if (activeChat?.type === 'group' && activeChat.id === groupId) {
+      appendMessage(message, 'group');
+    } else {
+      unreadCounts[`group_${groupId}`] = (unreadCounts[`group_${groupId}`] || 0) + 1;
+    }
+    updateConvPreview('group', groupId, message.content);
+    renderConversationList();
+  });
+
+  // Typing
+  socket.on('typing:start', ({ conversationId }) => {
+    if (activeChat?.type === 'dm' && activeChat.id === conversationId) showTyping();
+  });
+  socket.on('typing:stop', ({ conversationId }) => {
+    if (activeChat?.type === 'dm' && activeChat.id === conversationId) hideTyping();
+  });
+  socket.on('group:typing:start', ({ groupId }) => {
+    if (activeChat?.type === 'group' && activeChat.id === groupId) showTyping();
+  });
+  socket.on('group:typing:stop', ({ groupId }) => {
+    if (activeChat?.type === 'group' && activeChat.id === groupId) hideTyping();
+  });
+
+  // Online status
+  socket.on('user:online', ({ userId }) => updateUserOnline(userId, true));
+  socket.on('user:offline', ({ userId }) => updateUserOnline(userId, false));
+}
+
+function showTyping() {
+  document.getElementById('typingIndicator').classList.remove('hidden');
+  scrollToBottom();
+}
+function hideTyping() {
+  document.getElementById('typingIndicator').classList.add('hidden');
+}
+
+// ─── Data Loading ──────────────────────────────────────────────────────────
 async function loadConversations() {
   try {
     const res = await fetch('/api/conversations');
-    const data = await res.json();
-    conversations = data.conversations || [];
-    renderConversations();
-  } catch {
-    showToast('Failed to load conversations', 'error');
-  }
+    if (res.ok) {
+      const data = await res.json();
+      conversations = data.conversations || data || [];
+      // Use server-side unread counts
+      conversations.forEach(c => {
+        if (c.unread_count > 0) unreadCounts[`dm_${c.id}`] = parseInt(c.unread_count);
+      });
+    }
+  } catch (e) { console.error('Load conversations error:', e); }
 }
 
-function renderConversations() {
-  const items = conversations.filter(c => c.last_message);
+async function loadGroups() {
+  try {
+    const res = await fetch('/api/groups');
+    if (res.ok) groups = await res.json();
+  } catch (e) { console.error('Load groups error:', e); }
+}
+
+async function loadAllUsers() {
+  try {
+    const res = await fetch('/api/users');
+    if (res.ok) allUsers = await res.json();
+  } catch (e) { console.error('Load users error:', e); }
+}
+
+// ─── Render Conversation List ─────────────────────────────────────────────
+function renderConversationList(filter = '') {
+  const list = document.getElementById('convList');
+  const empty = document.getElementById('convEmptyState');
+
+  // Combine DMs + groups into one sortable list
+  const items = [];
+  conversations.forEach(c => {
+    const participantId = c.other_user_id;
+    const name = c.other_display_name || c.other_username || 'Unknown';
+    if (filter && !name.toLowerCase().includes(filter.toLowerCase())) return;
+    items.push({
+      type: 'dm',
+      id: c.id,
+      name,
+      avatar: c.other_avatar_url,
+      sub: null,
+      preview: c.last_message || 'No messages yet',
+      time: c.last_message_at,
+      unread: unreadCounts[`dm_${c.id}`] || 0,
+      isOnline: c.other_is_online,
+      participantId,
+    });
+  });
+  groups.forEach(g => {
+    if (filter && !g.name.toLowerCase().includes(filter.toLowerCase())) return;
+    items.push({
+      type: 'group',
+      id: g.id,
+      name: g.name,
+      avatar: null,
+      sub: `Group · ${g.member_count} members`,
+      preview: g.last_message || 'No messages yet',
+      time: g.last_message_at,
+      unread: unreadCounts[`group_${g.id}`] || 0,
+    });
+  });
+
+  // Sort by latest message
+  items.sort((a, b) => {
+    if (!a.time && !b.time) return 0;
+    if (!a.time) return 1;
+    if (!b.time) return -1;
+    return new Date(b.time) - new Date(a.time);
+  });
+
   if (items.length === 0) {
-    emptyConversations.style.display = 'flex';
-    conversationsList.innerHTML = '';
-    conversationsList.appendChild(emptyConversations);
+    empty.classList.remove('hidden');
+    list.innerHTML = '';
+    list.appendChild(empty);
     return;
   }
+  empty.classList.add('hidden');
 
-  emptyConversations.style.display = 'none';
+  // Update total unread badge
+  const totalUnread = items.reduce((sum, i) => sum + i.unread, 0);
+  const badge = document.getElementById('totalUnreadBadge');
+  if (totalUnread > 0) {
+    badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
 
-  conversationsList.innerHTML = items.map(conv => `
-    <div class="conversation-item ${conv.id === activeConversationId ? 'active' : ''}"
-         data-id="${conv.id}"
-         data-user-id="${conv.other_user_id}"
-         id="conv-${conv.id}">
-      <div class="conv-avatar-wrapper">
-        ${avatarHtml(conv.other_avatar_url, conv.other_username || conv.other_display_name, 48, 'conv-avatar')}
-        ${conv.other_is_online ? '<div class="online-dot"></div>' : ''}
-      </div>
-      <div class="conv-content">
+  // Update stats
+  document.getElementById('statConversations').textContent = conversations.length;
+  document.getElementById('statGroups').textContent = groups.length;
+  document.getElementById('statOnline').textContent = allUsers.filter(u => u.is_online && u.id !== currentUser.id).length;
+
+  list.innerHTML = items.map(item => {
+    const isActive = activeChat?.type === item.type && activeChat?.id === item.id;
+    const timeStr = item.time ? formatTime(new Date(item.time)) : '';
+    const avatarHtml = item.type === 'group'
+      ? `<div class="group-avatar">👥</div>`
+      : `<div class="conv-avatar-wrap">
+           ${item.avatar
+             ? `<img src="${item.avatar}" class="conv-avatar" style="border-radius:50%" />`
+             : `<div class="conv-avatar"><div class="avatar-placeholder">${(item.name[0]||'?').toUpperCase()}</div></div>`
+           }
+           ${item.isOnline ? '<span class="conv-online"></span>' : ''}
+         </div>`;
+
+    return `<div class="conv-item ${isActive ? 'active' : ''}" 
+               onclick="openChat('${item.type}', ${item.id}, '${escHtml(item.name)}', ${item.participantId || 'null'}, '${escHtml(item.avatar || '')}', '${escHtml(item.sub || '')}')">
+      ${avatarHtml}
+      <div class="conv-body">
         <div class="conv-top">
-          <span class="conv-name">@${escapeHtml(conv.other_username || conv.other_display_name)}</span>
-          <span class="conv-time">${conv.last_message_at ? formatConvTime(conv.last_message_at) : ''}</span>
+          <span class="conv-name">${escHtml(item.name)}</span>
+          <span class="conv-time">${timeStr}</span>
         </div>
         <div class="conv-bottom">
-          <span class="conv-last-message">${escapeHtml(conv.last_message || '')}</span>
-          ${parseInt(conv.unread_count) > 0
-            ? `<span class="unread-badge">${conv.unread_count}</span>`
-            : ''}
+          <span class="conv-preview">${escHtml(item.preview)}</span>
+          ${item.unread > 0 ? `<span class="conv-badge">${item.unread}</span>` : ''}
         </div>
+        ${item.sub ? `<div class="conv-meta">${escHtml(item.sub)}</div>` : ''}
       </div>
-    </div>
-  `).join('');
-
-  conversationsList.querySelectorAll('.conversation-item').forEach(el => {
-    el.addEventListener('click', () => openConversation(
-      parseInt(el.dataset.id),
-      parseInt(el.dataset.userId)
-    ));
-  });
+    </div>`;
+  }).join('');
 }
 
-// ─── Open Conversation ────────────────────────────────────
-async function openConversation(conversationId, otherUserId) {
-  activeConversationId = conversationId;
+function updateConvPreview(type, id, content) {
+  if (type === 'dm') {
+    const c = conversations.find(c => c.id === id);
+    if (c) c.last_message = content, c.last_message_at = new Date().toISOString();
+  } else {
+    const g = groups.find(g => g.id === id);
+    if (g) g.last_message = content, g.last_message_at = new Date().toISOString();
+  }
+}
 
-  // Find other user info from conversations
-  const conv = conversations.find(c => c.id === conversationId);
-  activeOtherUser = conv ? {
-    id: conv.other_user_id,
-    username: conv.other_username,
-    display_name: conv.other_display_name,
-    avatar_url: conv.other_avatar_url,
-    is_online: conv.other_is_online,
-  } : null;
+// ─── Open Chat ────────────────────────────────────────────────────────────
+async function openChat(type, id, name, participantId, avatar, sub) {
+  activeChat = { type, id, name, participantId, avatar };
 
-  // Reset unread
-  if (conv) conv.unread_count = 0;
-  renderConversations();
+  // Clear unread
+  unreadCounts[`${type === 'dm' ? 'dm' : 'group'}_${id}`] = 0;
 
-  // Mobile: show chat panel
-  chatPanel.classList.add('visible');
-  sidebar.classList.add('hidden');
+  // UI setup
+  document.getElementById('welcomeScreen').classList.add('hidden');
+  document.getElementById('chatView').classList.remove('hidden');
+  document.getElementById('contactsView').classList.add('hidden');
+  document.getElementById('dashboardView').classList.add('hidden');
 
-  // Show chat UI
-  chatEmptyState.style.display = 'none';
-  activeChat.style.display = 'flex';
-
-  // Update header
-  renderChatHeader();
+  document.getElementById('chatName').textContent = name;
+  const chatAvatar = document.getElementById('chatAvatar');
+  if (avatar) { chatAvatar.src = avatar; chatAvatar.style.display = 'block'; }
+  else { chatAvatar.style.display = 'none'; }
+  document.getElementById('chatSub').textContent = sub || (type === 'dm' ? 'Offline' : '');
+  document.getElementById('chatOnlineDot').classList.toggle('hidden', type !== 'dm');
 
   // Load messages
-  messagesArea.innerHTML = '';
-  messagesArea.appendChild(messagesLoading);
-  messagesLoading.style.display = 'flex';
-  typingIndicator.classList.remove('visible');
+  const messagesArea = document.getElementById('messagesArea');
+  messagesArea.innerHTML = '<div class="typing-indicator hidden" id="typingIndicator"><span></span><span></span><span></span></div>';
 
   try {
-    const res = await fetch(`/api/conversations/${conversationId}/messages`);
-    const data = await res.json();
-
-    messagesLoading.style.display = 'none';
-    messagesArea.innerHTML = '';
-
-    renderMessages(data.messages || []);
-    scrollToBottom(false);
-
-    messageInput.focus();
-    sendBtn.disabled = false;
-  } catch {
-    showToast('Failed to load messages', 'error');
-  }
-}
-
-function renderChatHeader() {
-  if (!activeOtherUser) return;
-
-  const avatarImg = document.getElementById('chatHeaderAvatar');
-  const avatarPh = document.getElementById('chatHeaderAvatarPlaceholder');
-
-  if (activeOtherUser.avatar_url) {
-    avatarImg.src = activeOtherUser.avatar_url;
-    avatarImg.style.display = 'block';
-    avatarPh.style.display = 'none';
-  } else {
-    avatarPh.textContent = (activeOtherUser.username || '?')[0].toUpperCase();
-    avatarPh.style.display = 'flex';
-    avatarImg.style.display = 'none';
-  }
-
-  document.getElementById('chatHeaderName').textContent = '@' + (activeOtherUser.username || activeOtherUser.display_name);
-  setHeaderOnline(activeOtherUser.is_online);
-}
-
-function setHeaderOnline(isOnline) {
-  const status = document.getElementById('chatHeaderStatus');
-  const dot = document.getElementById('chatHeaderOnlineDot');
-  if (isOnline) {
-    status.textContent = 'Online';
-    status.classList.add('online');
-    dot.style.display = 'block';
-  } else {
-    status.textContent = 'Offline';
-    status.classList.remove('online');
-    dot.style.display = 'none';
-  }
-}
-
-// ─── Render Messages ──────────────────────────────────────
-function renderMessages(messages) {
-  let lastDate = null;
-
-  messages.forEach(msg => {
-    const msgDate = new Date(msg.created_at).toDateString();
-    if (msgDate !== lastDate) {
-      const divider = document.createElement('div');
-      divider.className = 'message-date-divider';
-      divider.innerHTML = `<span>${formatDate(msg.created_at)}</span>`;
-      messagesArea.appendChild(divider);
-      lastDate = msgDate;
+    let msgs = [];
+    if (type === 'dm') {
+      const res = await fetch(`/api/conversations/${id}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        msgs = data.messages || data || [];
+      }
+      // Mark as read
+      if (msgs.length > 0) {
+        const lastFromOther = [...msgs].reverse().find(m => m.sender_id !== currentUser.id);
+        if (lastFromOther) socket.emit('messages:read', { conversationId: id, senderId: lastFromOther.sender_id });
+      }
+    } else {
+      socket.emit('group:join', id);
+      const res = await fetch(`/api/groups/${id}/messages`);
+      if (res.ok) msgs = await res.json();
     }
-    appendMessage(msg, false);
-  });
-}
-
-function appendMessage(msg, animate = true) {
-  const isSent = msg.sender_id === currentUser.id;
-
-  const wrap = document.createElement('div');
-  wrap.className = `message-wrap ${isSent ? 'sent' : 'received'}`;
-  wrap.dataset.msgId = msg.id;
-
-  const bubble = document.createElement('div');
-  bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}`;
-  if (!animate) bubble.style.animation = 'none';
-
-  bubble.innerHTML = `
-    ${escapeHtml(msg.content).replace(/\n/g, '<br>')}
-    <div class="message-meta">
-      <span class="message-time">${formatTime(msg.created_at)}</span>
-      ${isSent ? `<span class="read-tick ${msg.is_read ? 'read' : ''}">✓✓</span>` : ''}
-    </div>
-  `;
-
-  if (!isSent) {
-    wrap.innerHTML = avatarHtml(msg.sender_avatar, msg.sender_username, 28, 'message-avatar-small');
+    msgs.forEach(m => appendMessage(m, type));
+  } catch (e) {
+    console.error('Load messages error:', e);
   }
 
-  wrap.appendChild(bubble);
-  messagesArea.appendChild(wrap);
+  scrollToBottom();
+  renderConversationList();
+  document.getElementById('messageInput').focus();
 }
 
-function scrollToBottom(smooth = true) {
-  messagesArea.scrollTo({
-    top: messagesArea.scrollHeight,
-    behavior: smooth ? 'smooth' : 'instant',
-  });
+// ─── Append Message ────────────────────────────────────────────────────────
+function appendMessage(msg, type) {
+  const area = document.getElementById('messagesArea');
+  const isOut = msg.sender_id === currentUser.id;
+  const typing = document.getElementById('typingIndicator');
+
+  const name = msg.sender_display_name || msg.display_name || msg.sender_username || msg.username || 'User';
+  const avatar = msg.sender_avatar;
+  const time = new Date(msg.created_at);
+  const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const div = document.createElement('div');
+  div.className = `msg-row ${isOut ? 'out' : 'in'}`;
+
+  const avatarHtml = !isOut
+    ? `<div class="msg-avatar">${avatar
+        ? `<img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
+        : `<div style="width:28px;height:28px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">${name[0].toUpperCase()}</div>`
+      }</div>`
+    : '';
+
+  const senderNameHtml = type === 'group' && !isOut
+    ? `<div class="msg-sender">${escHtml(name)}</div>`
+    : '';
+
+  div.innerHTML = `
+    ${avatarHtml}
+    <div class="msg-group">
+      ${senderNameHtml}
+      <div class="msg-bubble">${escHtml(msg.content)}</div>
+      <div class="msg-meta">
+        <span class="msg-time">${timeStr}</span>
+        ${isOut ? '<span class="msg-status">✓ Delivered</span>' : ''}
+      </div>
+    </div>`;
+
+  area.insertBefore(div, typing);
+  scrollToBottom();
 }
 
-// ─── Send Message ─────────────────────────────────────────
+function scrollToBottom() {
+  const area = document.getElementById('messagesArea');
+  area.scrollTop = area.scrollHeight;
+}
+
+// ─── Send Message ──────────────────────────────────────────────────────────
 function sendMessage() {
-  const content = messageInput.value.trim();
-  if (!content || !activeConversationId || !socket) return;
+  const input = document.getElementById('messageInput');
+  const content = input.value.trim();
+  if (!content || !activeChat) return;
+  input.value = '';
 
-  socket.emit('message:send', {
-    conversationId: activeConversationId,
-    content,
-  });
+  if (activeChat.type === 'dm') {
+    socket.emit('message:send', { conversationId: activeChat.id, content });
+  } else {
+    socket.emit('group:message', { groupId: activeChat.id, content });
+  }
 
-  messageInput.value = '';
-  messageInput.style.height = 'auto';
-  sendBtn.disabled = true;
   stopTyping();
 }
 
-// ─── Search ───────────────────────────────────────────────
-let searchDebounce = null;
+function setupMessageInput() {
+  const input = document.getElementById('messageInput');
+  const btn = document.getElementById('sendBtn');
 
-searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim();
-  clearTimeout(searchDebounce);
+  btn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
 
-  if (q.length < 2) {
-    searchResults.classList.remove('visible');
-    return;
-  }
-
-  searchDebounce = setTimeout(() => searchUsers(q), 300);
-});
-
-async function searchUsers(q) {
-  try {
-    const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-
-    if (!data.users || data.users.length === 0) {
-      searchResults.innerHTML = `<div class="search-no-results">No users found for "${escapeHtml(q)}"</div>`;
-    } else {
-      searchResults.innerHTML = data.users.map(u => `
-        <div class="search-result-item" data-user-id="${u.id}" data-username="${escapeHtml(u.username)}">
-          ${avatarHtml(u.avatar_url, u.username, 38, 'search-result-avatar')}
-          <div>
-            <div class="search-result-name">@${escapeHtml(u.username)}</div>
-            <div class="search-result-username">${escapeHtml(u.display_name || '')}</div>
-          </div>
-          ${u.is_online ? '<div style="margin-left:auto;width:8px;height:8px;background:var(--online-color);border-radius:50%;"></div>' : ''}
-        </div>
-      `).join('');
-
-      searchResults.querySelectorAll('.search-result-item').forEach(el => {
-        el.addEventListener('click', () => startConversationWith(
-          parseInt(el.dataset.userId),
-          el.dataset.username
-        ));
-      });
+  input.addEventListener('input', () => {
+    if (!activeChat || !socket) return;
+    if (activeChat.type === 'dm' && activeChat.participantId) {
+      socket.emit('typing:start', { conversationId: activeChat.id, receiverId: activeChat.participantId });
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(stopTyping, 2000);
+    } else if (activeChat.type === 'group') {
+      socket.emit('group:typing:start', { groupId: activeChat.id });
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(stopTyping, 2000);
     }
-    searchResults.classList.add('visible');
-  } catch {
-    showToast('Search failed', 'error');
+  });
+}
+
+function stopTyping() {
+  if (!activeChat || !socket) return;
+  if (activeChat.type === 'dm' && activeChat.participantId) {
+    socket.emit('typing:stop', { conversationId: activeChat.id, receiverId: activeChat.participantId });
+  } else if (activeChat.type === 'group') {
+    socket.emit('group:typing:stop', { groupId: activeChat.id });
   }
 }
 
-async function startConversationWith(userId, username) {
-  searchInput.value = '';
-  searchResults.classList.remove('visible');
+// ─── Navigation ────────────────────────────────────────────────────────────
+function setupNav() {
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
 
+      const welcomeScreen = document.getElementById('welcomeScreen');
+      const chatView = document.getElementById('chatView');
+      const contactsView = document.getElementById('contactsView');
+      const dashboardView = document.getElementById('dashboardView');
+
+      welcomeScreen.classList.add('hidden');
+      chatView.classList.add('hidden');
+      contactsView.classList.add('hidden');
+      dashboardView.classList.add('hidden');
+
+      if (view === 'chats') {
+        if (activeChat) {
+          chatView.classList.remove('hidden');
+        } else {
+          welcomeScreen.classList.remove('hidden');
+        }
+      } else if (view === 'contacts') {
+        contactsView.classList.remove('hidden');
+        renderContacts();
+      } else if (view === 'dashboard') {
+        dashboardView.classList.remove('hidden');
+      }
+    });
+  });
+}
+
+// ─── Contacts ──────────────────────────────────────────────────────────────
+function renderContacts() {
+  const list = document.getElementById('contactsList');
+  const others = allUsers.filter(u => u.id !== currentUser.id);
+  if (others.length === 0) {
+    list.innerHTML = '<p class="empty-state">No other users registered yet.</p>';
+    return;
+  }
+  list.innerHTML = others.map(u => `
+    <div class="contact-item">
+      <div class="contact-avatar">
+        ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">` : (u.display_name || u.username || '?')[0].toUpperCase()}
+      </div>
+      <div class="contact-info">
+        <div class="contact-name">${escHtml(u.display_name || u.username)}</div>
+        <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
+      </div>
+      <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
+      <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
+    </div>
+  `).join('');
+}
+
+async function startDM(userId, name, avatar) {
   try {
     const res = await fetch('/api/conversations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     });
+    if (!res.ok) throw new Error('Failed');
     const data = await res.json();
+    const conv = data.conversation || data;
 
-    if (!res.ok) {
-      showToast(data.error || 'Failed to open conversation', 'error');
-      return;
-    }
+    await loadConversations();
+    renderConversationList();
 
-    const convId = data.conversation.id;
+    // Switch to chats view
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('navChats').classList.add('active');
 
-    // Check if already in list
-    if (!conversations.find(c => c.id === convId)) {
-      // Fetch user info and add to list temporarily
-      const userRes = await fetch(`/api/users/profile/${username}`);
-      const userData = await userRes.json();
-      const u = userData.user;
-      conversations.unshift({
-        id: convId,
-        other_user_id: u.id,
-        other_username: u.username,
-        other_display_name: u.display_name,
-        other_avatar_url: u.avatar_url,
-        other_is_online: u.is_online,
-        last_message: null,
-        last_message_at: new Date().toISOString(),
-        unread_count: 0,
-      });
-      renderConversations();
-    }
-
-    openConversation(convId, userId);
-  } catch {
-    showToast('Failed to open conversation', 'error');
+    openChat('dm', conv.id, name, userId, avatar, null);
+  } catch (e) {
+    alert('Could not start conversation. Try again.');
   }
 }
 
-// ─── Typing ───────────────────────────────────────────────
-function startTyping() {
-  if (!isTyping && activeOtherUser) {
-    isTyping = true;
-    socket.emit('typing:start', {
-      conversationId: activeConversationId,
-      receiverId: activeOtherUser.id,
+// ─── Group Modal ───────────────────────────────────────────────────────────
+function setupGroupModal() {
+  const modal = document.getElementById('groupModal');
+  const openBtn = document.getElementById('newGroupBtn');
+  const closeBtn = document.getElementById('closeGroupModal');
+  const cancelBtn = document.getElementById('cancelGroupModal');
+  const createBtn = document.getElementById('createGroupBtn');
+
+  openBtn.addEventListener('click', () => {
+    selectedMembers.clear();
+    document.getElementById('groupNameInput').value = '';
+    renderMembersList();
+    modal.classList.remove('hidden');
+  });
+
+  closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+  createBtn.addEventListener('click', createGroup);
+}
+
+function renderMembersList() {
+  const list = document.getElementById('membersList');
+  const others = allUsers.filter(u => u.id !== currentUser.id);
+  if (others.length === 0) {
+    list.innerHTML = '<p class="empty-state-sm">No other users to add yet.</p>';
+    return;
+  }
+  list.innerHTML = others.map(u => {
+    const name = u.display_name || u.username;
+    const isSelected = selectedMembers.has(u.id);
+    return `<div class="member-item ${isSelected ? 'selected' : ''}" onclick="toggleMember(${u.id}, this)">
+      <div class="member-check">${isSelected ? '✓' : ''}</div>
+      <div class="member-avatar">${u.avatar_url
+        ? `<img src="${u.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
+        : name[0].toUpperCase()
+      }</div>
+      <span class="member-name">${escHtml(name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleMember(userId, el) {
+  if (selectedMembers.has(userId)) {
+    selectedMembers.delete(userId);
+    el.classList.remove('selected');
+    el.querySelector('.member-check').textContent = '';
+  } else {
+    selectedMembers.add(userId);
+    el.classList.add('selected');
+    el.querySelector('.member-check').textContent = '✓';
+  }
+}
+
+async function createGroup() {
+  const name = document.getElementById('groupNameInput').value.trim();
+  if (!name) { alert('Please enter a group name'); return; }
+
+  const btn = document.getElementById('createGroupBtn');
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, memberIds: [...selectedMembers] }),
     });
+    if (!res.ok) throw new Error('Failed');
+    const group = await res.json();
+
+    document.getElementById('groupModal').classList.add('hidden');
+    await loadGroups();
+    renderConversationList();
+
+    // Switch to chats + open new group
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('navChats').classList.add('active');
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('contactsView').classList.add('hidden');
+
+    openChat('group', group.id, group.name, null, null, `Group · ${group.member_count} members`);
+  } catch (e) {
+    alert('Failed to create group. Try again.');
+  } finally {
+    btn.textContent = 'Create Group';
+    btn.disabled = false;
   }
-  clearTimeout(typingTimer);
-  typingTimer = setTimeout(stopTyping, 1500);
 }
 
-function stopTyping() {
-  if (isTyping && activeOtherUser) {
-    isTyping = false;
-    socket.emit('typing:stop', {
-      conversationId: activeConversationId,
-      receiverId: activeOtherUser.id,
-    });
+// ─── Search ────────────────────────────────────────────────────────────────
+function setupSearch() {
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    renderConversationList(e.target.value);
+  });
+}
+
+// ─── Online Status ─────────────────────────────────────────────────────────
+function updateUserOnline(userId, isOnline) {
+  const user = allUsers.find(u => u.id === parseInt(userId));
+  if (user) user.is_online = isOnline;
+
+  if (activeChat?.type === 'dm' && activeChat.participantId === parseInt(userId)) {
+    const dot = document.getElementById('chatOnlineDot');
+    const sub = document.getElementById('chatSub');
+    dot.classList.toggle('hidden', !isOnline);
+    sub.textContent = isOnline ? 'Online' : 'Last seen recently';
   }
+  renderConversationList();
 }
 
-// ─── Event Listeners ──────────────────────────────────────
-function setupEventListeners() {
-  // Send button
-  sendBtn.addEventListener('click', sendMessage);
-
-  // Message input — auto-resize + typing
-  messageInput.addEventListener('input', () => {
-    messageInput.style.height = 'auto';
-    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
-    sendBtn.disabled = messageInput.value.trim().length === 0;
-    if (messageInput.value.trim().length > 0) startTyping();
-  });
-
-  // Enter to send (Shift+Enter for newline)
-  messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!sendBtn.disabled) sendMessage();
-    }
-  });
-
-  // Close search on click outside
-  document.addEventListener('click', (e) => {
-    if (!document.getElementById('searchContainer').contains(e.target)) {
-      searchResults.classList.remove('visible');
-    }
-  });
-
-  // Logout
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await fetch('/auth/logout', { method: 'POST' });
-    window.location.href = '/';
-  });
-
-  // Mobile back button
-  backBtn.addEventListener('click', () => {
-    chatPanel.classList.remove('visible');
-    sidebar.classList.remove('hidden');
-    activeConversationId = null;
-    activeOtherUser = null;
-  });
+// ─── Helpers ───────────────────────────────────────────────────────────────
+function formatTime(date) {
+  const now = new Date();
+  const diff = now - date;
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m`;
+  if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-// ─── Boot ─────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// ─── Start ─────────────────────────────────────────────────────────────────
 init();

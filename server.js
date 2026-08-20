@@ -16,6 +16,7 @@ pool.on('error', (err) => {
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
+const groupRoutes = require('./routes/groups');
 const { setupSocketHandlers } = require('./socket/handlers');
 
 const app = express();
@@ -100,6 +101,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', messageRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Protect app pages
 app.get('/app.html', (req, res, next) => {

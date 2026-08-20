@@ -1,119 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChatWave</title>
-  <meta name="description" content="ChatWave — Your real-time chat application">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
-  <link rel="stylesheet" href="/css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatWave — Messaging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-  <div class="app-layout" id="appLayout">
 
-    <!-- ── Sidebar ─────────────────────────────────── -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="user-profile">
-          <img id="myAvatar" class="user-avatar" src="" alt="Your avatar" style="display:none">
-          <div id="myAvatarPlaceholder" class="user-avatar-placeholder" style="display:none">?</div>
-          <div class="user-info">
-            <div class="user-name" id="myUsername">Loading...</div>
-            <div class="user-status">Online</div>
-          </div>
-          <button class="btn-logout" id="logoutBtn">Sign out</button>
+<div class="app-layout">
+
+  <!-- ═══ LEFT SIDEBAR ═══════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="currentColor"/>
+        </svg>
+      </div>
+      <span class="brand-name">ChatWave</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" id="navDashboard" data-view="dashboard" title="Dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item active" id="navChats" data-view="chats" title="Chats">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Chats</span>
+        <span class="nav-badge hidden" id="totalUnreadBadge">0</span>
+      </button>
+      <button class="nav-item" id="navContacts" data-view="contacts" title="Contacts">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Contacts</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="nav-item" id="navSettings" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar-wrap">
+          <img id="sidebarAvatar" src="" alt="You" class="sidebar-avatar" />
+          <span class="online-dot"></span>
         </div>
-
-        <div class="search-container" id="searchContainer">
-          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            type="text"
-            class="search-input"
-            id="searchInput"
-            placeholder="Search users..."
-            autocomplete="off"
-          >
-          <div class="search-results" id="searchResults"></div>
+        <div class="sidebar-user-info">
+          <div id="sidebarUsername" class="sidebar-username">Loading...</div>
+          <div class="sidebar-status">Online</div>
         </div>
       </div>
+    </div>
+  </aside>
 
-      <div class="sidebar-section-title">Messages</div>
-      <div class="conversations-list" id="conversationsList">
-        <div class="empty-conversations" id="emptyConversations">
-          <div class="empty-icon">💬</div>
-          <div class="empty-text">No conversations yet.<br>Search for a user to start chatting!</div>
-        </div>
+  <!-- ═══ CONVERSATION LIST PANEL ════════════════════════════════════════════ -->
+  <div class="conv-panel" id="convPanel">
+    <div class="panel-header">
+      <h2 class="panel-title">Conversations</h2>
+      <button class="icon-btn" id="newGroupBtn" title="New Group">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search conversations..." />
+    </div>
+
+    <div class="conv-list" id="convList">
+      <div class="empty-state" id="convEmptyState">
+        <p>No conversations yet.<br/>Start chatting from Contacts!</p>
       </div>
-    </aside>
-
-    <!-- ── Chat Panel ──────────────────────────────── -->
-    <main class="chat-panel" id="chatPanel">
-      <!-- Empty state -->
-      <div class="chat-empty-state" id="chatEmptyState">
-        <div class="empty-icon">👋</div>
-        <h2>Welcome to ChatWave</h2>
-        <p>Select a conversation or search for a user to start chatting</p>
-      </div>
-
-      <!-- Active chat (hidden initially) -->
-      <div id="activeChat" style="display:none; display:flex; flex-direction:column; height:100%; display:none">
-        <div class="chat-header" id="chatHeader">
-          <button class="back-btn" id="backBtn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-            Back
-          </button>
-          <div class="chat-header-avatar-wrap">
-            <img id="chatHeaderAvatar" class="chat-header-avatar" src="" alt="" style="display:none">
-            <div id="chatHeaderAvatarPlaceholder" class="chat-header-avatar-placeholder" style="display:none">?</div>
-            <div class="online-dot" id="chatHeaderOnlineDot" style="display:none"></div>
-          </div>
-          <div class="chat-header-info">
-            <div class="chat-header-name" id="chatHeaderName"></div>
-            <div class="chat-header-status" id="chatHeaderStatus">Offline</div>
-          </div>
-        </div>
-
-        <div class="messages-area" id="messagesArea">
-          <div class="loading-messages" id="messagesLoading">
-            <div class="spinner"></div>
-          </div>
-        </div>
-
-        <div class="typing-indicator" id="typingIndicator">
-          <div class="typing-dots">
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-          </div>
-        </div>
-
-        <div class="chat-input-area">
-          <div class="chat-input-wrapper">
-            <textarea
-              id="messageInput"
-              class="chat-input"
-              placeholder="Type a message..."
-              rows="1"
-              maxlength="2000"
-            ></textarea>
-            <button class="btn-send" id="sendBtn" disabled title="Send message">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </main>
+    </div>
   </div>
 
-  <div class="toast-container" id="toastContainer"></div>
+  <!-- ═══ CHAT AREA ═══════════════════════════════════════════════════════════ -->
+  <div class="chat-area">
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/app.js"></script>
+    <!-- Welcome screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-content">
+        <div class="welcome-icon">💬</div>
+        <h2>Welcome to ChatWave</h2>
+        <p>Select a conversation to start messaging</p>
+      </div>
+    </div>
+
+    <!-- Active chat -->
+    <div class="chat-view hidden" id="chatView">
+
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="chat-info">
+          <div class="chat-avatar-wrap">
+            <img id="chatAvatar" src="" alt="" class="chat-avatar" />
+            <span class="chat-online-dot hidden" id="chatOnlineDot"></span>
+          </div>
+          <div>
+            <div class="chat-name" id="chatName">Name</div>
+            <div class="chat-sub" id="chatSub">Online</div>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button class="icon-btn" title="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+          <button class="icon-btn" title="More options" id="moreOptionsBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-area" id="messagesArea">
+        <div class="typing-indicator hidden" id="typingIndicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="input-bar">
+        <button class="icon-btn" title="Attach file">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <input type="text" id="messageInput" class="message-input" placeholder="Type a message..." autocomplete="off" />
+        <button class="icon-btn" title="Emoji">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </button>
+        <button class="send-btn" id="sendBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Contacts View -->
+    <div class="contacts-view hidden" id="contactsView">
+      <div class="panel-header" style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb;">
+        <h2 class="panel-title">All Users</h2>
+      </div>
+      <div class="contacts-list" id="contactsList"></div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div class="dashboard-view hidden" id="dashboardView">
+      <div class="dashboard-content">
+        <h2>👋 Hello, <span id="dashName">there</span>!</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="statConversations">0</div>
+            <div class="stat-label">Conversations</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="statGroups">0</div>
+            <div class="stat-label">Groups</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="statOnline">0</div>
+            <div class="stat-label">Online Now</div>
+          </div>
+        </div>
+        <p class="dashboard-tip">💡 Click <strong>Chats</strong> in the sidebar to see your conversations, or <strong>Contacts</strong> to start a new chat.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ CREATE GROUP MODAL ══════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="groupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create Group</h3>
+      <button class="icon-btn" id="closeGroupModal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <label class="form-label">Group Name</label>
+      <input type="text" id="groupNameInput" class="form-input" placeholder="e.g. Team Design" maxlength="50" />
+      <label class="form-label" style="margin-top:16px;">Add Members</label>
+      <div class="members-list" id="membersList">
+        <p class="empty-state-sm">Loading users...</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="cancelGroupModal">Cancel</button>
+      <button class="btn-primary" id="createGroupBtn">Create Group</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
 </body>
 </html>
