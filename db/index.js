@@ -5,6 +5,8 @@ const path = require('path');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
 });
 
 async function initializeDatabase() {
@@ -14,7 +16,6 @@ async function initializeDatabase() {
     await pool.query(schema);
     console.log('✅ Database schema initialized');
   } catch (err) {
-    // Session table constraint errors on re-run are harmless
     if (err.code !== '42P07' && !err.message.includes('already exists')) {
       console.error('❌ Database initialization error:', err.message);
     } else {
