@@ -655,10 +655,20 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   .conv-panel { width: 100%; height: calc(100vh - 64px); position: relative; z-index: 1; }
   .chat-area { width: 100%; height: calc(100vh - 64px); display: none; position: relative; z-index: 1; }
 
-  /* When a chat / view is open on mobile: hide bottom navbar so chat input bar has 100% full screen height */
+  /* ── mobile-chat-open: ONLY for actual chat conversations ──
+     Hides nav + conv-panel, gives chat full screen height      */
   .mobile-chat-open .sidebar { display: none !important; }
   .mobile-chat-open .conv-panel { display: none !important; }
   .mobile-chat-open .chat-area { display: flex !important; flex-direction: column; height: 100vh !important; }
+
+  /* ── mobile-view-open: for Dashboard / Contacts ──
+     Shows the chat-area region WITHOUT hiding bottom nav       */
+  .mobile-view-open .conv-panel { display: none !important; }
+  .mobile-view-open .chat-area {
+    display: flex !important;
+    flex-direction: column;
+    height: calc(100vh - 64px) !important;
+  }
   
   /* Show styled back button in chat header when chat is open */
   .mobile-back-btn { 

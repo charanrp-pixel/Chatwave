@@ -322,6 +322,7 @@ function updateConvPreview(type, id, content) {
 // ─── Open Chat ────────────────────────────────────────────────────────────
 async function openChat(type, id, name, participantId, avatar, sub) {
   activeChat = { type, id, name, participantId, avatar };
+  document.querySelector('.app-layout').classList.remove('mobile-view-open');
   document.querySelector('.app-layout').classList.add('mobile-chat-open');
 
   // Clear unread
@@ -481,6 +482,7 @@ function setupNav() {
       const chatView = document.getElementById('chatView');
       const contactsView = document.getElementById('contactsView');
       const dashboardView = document.getElementById('dashboardView');
+      const appLayout = document.querySelector('.app-layout');
 
       welcomeScreen?.classList.add('hidden');
       chatView?.classList.add('hidden');
@@ -488,18 +490,22 @@ function setupNav() {
       dashboardView?.classList.add('hidden');
 
       if (view === 'chats') {
-        // Hide the right panel on mobile so they see the chat list
-        document.querySelector('.app-layout')?.classList.remove('mobile-chat-open');
+        // Return to conversation list on mobile
+        appLayout?.classList.remove('mobile-chat-open');
+        appLayout?.classList.remove('mobile-view-open');
         activeChat = null;
-        chatView?.classList.add('hidden');
         welcomeScreen?.classList.remove('hidden');
       } else if (view === 'contacts') {
+        // Use mobile-view-open so bottom nav stays visible
+        appLayout?.classList.remove('mobile-chat-open');
+        appLayout?.classList.add('mobile-view-open');
         contactsView?.classList.remove('hidden');
-        document.querySelector('.app-layout')?.classList.add('mobile-chat-open');
         renderContacts();
       } else if (view === 'dashboard') {
+        // Use mobile-view-open so bottom nav stays visible
+        appLayout?.classList.remove('mobile-chat-open');
+        appLayout?.classList.add('mobile-view-open');
         dashboardView?.classList.remove('hidden');
-        document.querySelector('.app-layout')?.classList.add('mobile-chat-open');
       }
     });
   });
