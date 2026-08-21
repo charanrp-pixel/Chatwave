@@ -131,13 +131,29 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 0.15s;
 }
+.sidebar-user:hover { background: var(--sidebar-hover); }
 .sidebar-avatar-wrap { position: relative; flex-shrink: 0; }
 .sidebar-avatar {
-  width: 34px; height: 34px;
-  border-radius: var(--radius-full);
+  width: 40px; height: 40px;
+  border-radius: 50%;
   object-fit: cover;
-  background: #4f46e5;
+  background: var(--primary);
+  display: block;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-name {
+  font-size: 13px; font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-user-handle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .online-dot {
   position: absolute; bottom: 1px; right: 1px;
