@@ -9,6 +9,31 @@ router.get('/me', isAuthenticated, (req, res) => {
   res.json({ id, email, username, display_name, avatar_url, is_online });
 });
 
+// Update profile (display name, avatar)
+router.patch('/me', isAuthenticated, async (req, res) => {
+  const { display_name, avatar_url } = req.body;
+  const updates = [];
+  const values = [];
+  let i = 1;
+  if (display_name !== undefined) { updates.push(`display_name = $${i++}`); values.push(display_name.trim() || null); }
+  if (avatar_url !== undefined)   { updates.push(`avatar_url = $${i++}`);   values.push(avatar_url.trim() || null); }
+  if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+  values.push(req.user.id);
+  try {
+    const result = await pool.query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${i} RETURNING id, username, display_name, avatar_url, email`,
+      values
+    );
+    const u = result.rows[0];
+    req.user.display_name = u.display_name;
+    req.user.avatar_url   = u.avatar_url;
+    res.json({ success: true, user: u });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // List all users endpoint removed for privacy reasons
 
 // Set username (first-time setup)

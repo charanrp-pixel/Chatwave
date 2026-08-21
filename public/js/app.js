@@ -38,6 +38,9 @@ async function init() {
   document.getElementById('dashName').textContent = currentUser.display_name || currentUser.username;
   document.getElementById('dashHandle').textContent = currentUser.username;
 
+  // Restore saved preferences (dark mode, bubble colour, etc.)
+  restoreSettings();
+
   // Connect socket
   socket = io({ auth: { userId: currentUser.id } });
   setupSocketListeners();
@@ -482,33 +485,37 @@ function setupNav() {
       const view = btn.dataset.view;
 
       const welcomeScreen = document.getElementById('welcomeScreen');
-      const chatView = document.getElementById('chatView');
-      const contactsView = document.getElementById('contactsView');
+      const chatView      = document.getElementById('chatView');
+      const contactsView  = document.getElementById('contactsView');
       const dashboardView = document.getElementById('dashboardView');
-      const appLayout = document.querySelector('.app-layout');
+      const settingsView  = document.getElementById('settingsView');
+      const appLayout     = document.querySelector('.app-layout');
 
       welcomeScreen?.classList.add('hidden');
       chatView?.classList.add('hidden');
       contactsView?.classList.add('hidden');
       dashboardView?.classList.add('hidden');
+      settingsView?.classList.add('hidden');
 
       if (view === 'chats') {
-        // Return to conversation list on mobile
         appLayout?.classList.remove('mobile-chat-open');
         appLayout?.classList.remove('mobile-view-open');
         activeChat = null;
         welcomeScreen?.classList.remove('hidden');
       } else if (view === 'contacts') {
-        // Use mobile-view-open so bottom nav stays visible
         appLayout?.classList.remove('mobile-chat-open');
         appLayout?.classList.add('mobile-view-open');
         contactsView?.classList.remove('hidden');
         renderContacts();
       } else if (view === 'dashboard') {
-        // Use mobile-view-open so bottom nav stays visible
         appLayout?.classList.remove('mobile-chat-open');
         appLayout?.classList.add('mobile-view-open');
         dashboardView?.classList.remove('hidden');
+      } else if (view === 'settings') {
+        appLayout?.classList.remove('mobile-chat-open');
+        appLayout?.classList.add('mobile-view-open');
+        settingsView?.classList.remove('hidden');
+        populateSettings();
       }
     });
   });
@@ -1119,5 +1126,159 @@ async function logout() {
   }
 }
 
+// ─── Settings ──────────────────────────────────────────────────────────────
+function populateSettings() {
+  if (!currentUser) return;
+  const name   = currentUser.display_name || currentUser.username || '';
+  const handle = `@${currentUser.username || ''}`;
+  const email  = currentUser.email || '';
+  const avatar = currentUser.avatar_url || '';
+
+  // Header preview
+  const preview = document.getElementById('settingsAvatarPreview');
+  if (preview) {
+    if (avatar) {
+      preview.innerHTML = `<img src="${escHtml(avatar)}" alt="Avatar">`;
+    } else {
+      preview.textContent = name[0]?.toUpperCase() || '?';
+    }
+  }
+  const nameEl = document.getElementById('settingsAvatarName');
+  if (nameEl) nameEl.textContent = name;
+  const handleEl = document.getElementById('settingsAvatarHandle');
+  if (handleEl) handleEl.textContent = handle;
+
+  // Fields
+  const dnEl = document.getElementById('settingsDisplayName');
+  if (dnEl) dnEl.value = currentUser.display_name || '';
+  const auEl = document.getElementById('settingsAvatarUrl');
+  if (auEl) auEl.value = currentUser.avatar_url || '';
+  const unEl = document.getElementById('settingsUsername');
+  if (unEl) unEl.value = currentUser.username || '';
+  const emEl = document.getElementById('settingsEmail');
+  if (emEl) emEl.value = email;
+
+  // Restore toggles from localStorage
+  const dm = localStorage.getItem('cw_dark_mode') === 'true';
+  const dn = document.getElementById('toggleDarkMode');
+  if (dn) dn.checked = dm;
+
+  const notif = localStorage.getItem('cw_notifications') !== 'false';
+  const tn = document.getElementById('toggleNotifications');
+  if (tn) tn.checked = notif;
+
+  const sound = localStorage.getItem('cw_sound') !== 'false';
+  const ts = document.getElementById('toggleSound');
+  if (ts) ts.checked = sound;
+
+  const online = localStorage.getItem('cw_online_status') !== 'false';
+  const to = document.getElementById('toggleOnlineStatus');
+  if (to) to.checked = online;
+
+  const rr = localStorage.getItem('cw_read_receipts') !== 'false';
+  const tr = document.getElementById('toggleReadReceipts');
+  if (tr) tr.checked = rr;
+
+  // Restore active colour chip
+  const savedColor = localStorage.getItem('cw_bubble_color') || '#4f46e5';
+  document.querySelectorAll('.color-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.color === savedColor);
+  });
+}
+
+async function saveDisplayName() {
+  const input  = document.getElementById('settingsDisplayName');
+  const status = document.getElementById('settingsDisplayNameStatus');
+  const btn    = input?.nextElementSibling?.nextElementSibling || document.querySelector('[onclick="saveDisplayName()"]');
+  const name   = input?.value.trim();
+  if (!name) { showSettingsStatus(status, 'Name cannot be empty.', false); return; }
+
+  try {
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ display_name: name })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    currentUser.display_name = data.user.display_name;
+    // Update sidebar + dashboard
+    document.getElementById('sidebarUsername').textContent = data.user.display_name || data.user.username;
+    document.getElementById('dashName').textContent        = data.user.display_name || data.user.username;
+    document.getElementById('settingsAvatarName').textContent = data.user.display_name || data.user.username;
+    showSettingsStatus(status, '✅ Display name updated!', true);
+  } catch (err) {
+    showSettingsStatus(status, err.message || 'Error saving.', false);
+  }
+}
+
+async function saveAvatarUrl() {
+  const input  = document.getElementById('settingsAvatarUrl');
+  const status = document.getElementById('settingsAvatarStatus');
+  const url    = input?.value.trim();
+
+  try {
+    const res = await fetch('/api/users/me', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatar_url: url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    currentUser.avatar_url = data.user.avatar_url;
+    // Update sidebar avatar
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    if (url && sidebarAvatar) { sidebarAvatar.src = url; sidebarAvatar.style.display = 'block'; }
+    // Update settings preview
+    const preview = document.getElementById('settingsAvatarPreview');
+    if (preview) {
+      preview.innerHTML = url
+        ? `<img src="${escHtml(url)}" alt="Avatar">`
+        : (currentUser.display_name || currentUser.username || '?')[0].toUpperCase();
+    }
+    showSettingsStatus(status, '✅ Avatar updated!', true);
+  } catch (err) {
+    showSettingsStatus(status, err.message || 'Error saving.', false);
+  }
+}
+
+function showSettingsStatus(el, msg, success) {
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = success ? '#16a34a' : '#ef4444';
+  setTimeout(() => { if (el) el.textContent = ''; }, 3000);
+}
+
+function applyDarkMode(on) {
+  document.body.classList.toggle('dark-mode', on);
+  localStorage.setItem('cw_dark_mode', on);
+}
+
+function applyBubbleColor(color, chipEl) {
+  document.documentElement.style.setProperty('--bubble-out', color);
+  document.documentElement.style.setProperty('--primary', color);
+  localStorage.setItem('cw_bubble_color', color);
+  // Update active chip
+  document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+  if (chipEl) chipEl.classList.add('active');
+}
+
+function saveNotifPref(on)         { localStorage.setItem('cw_notifications', on); }
+function saveSoundPref(on)         { localStorage.setItem('cw_sound', on); }
+function saveOnlineStatusPref(on)  { localStorage.setItem('cw_online_status', on); }
+function saveReadReceiptsPref(on)  { localStorage.setItem('cw_read_receipts', on); }
+
+function restoreSettings() {
+  // Dark mode
+  if (localStorage.getItem('cw_dark_mode') === 'true') {
+    document.body.classList.add('dark-mode');
+  }
+  // Bubble / primary colour
+  const color = localStorage.getItem('cw_bubble_color');
+  if (color) {
+    document.documentElement.style.setProperty('--bubble-out', color);
+    document.documentElement.style.setProperty('--primary', color);
+  }
+}
+
 // ─── Start ─────────────────────────────────────────────────────────────────
+
 init();
