@@ -510,6 +510,40 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 }
 .start-chat-btn:hover { background: var(--primary); color: white; }
 
+/* ─── Contact action buttons (call icons + message) ────────────────────── */
+.contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.call-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+.call-btn:hover {
+  background: #16a34a;
+  color: white;
+  transform: scale(1.08);
+  box-shadow: 0 3px 10px rgba(22,163,74,0.3);
+}
+.call-btn.video {
+  background: #eef2ff;
+  color: var(--primary);
+}
+.call-btn.video:hover {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 3px 10px rgba(79,70,229,0.3);
+}
+
 /* ─── Add Friend Search Dropdown ───────────────────────────────────────── */
 .friend-search-wrap {
   position: relative;

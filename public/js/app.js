@@ -559,7 +559,20 @@ function renderContacts() {
             <div class="contact-handle">@${escHtml(u.username || 'unknown')}</div>
           </div>
           <span class="contact-status ${u.is_online ? 'online' : 'offline'}">${u.is_online ? '● Online' : 'Offline'}</span>
-          <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
+          <div class="contact-actions">
+            <button class="call-btn" title="Voice Call">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.09-.9a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+            </button>
+            <button class="call-btn video" title="Video Call">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </button>
+            <button class="start-chat-btn" onclick="startDM(${u.id}, '${escHtml(u.display_name || u.username)}', '${escHtml(u.avatar_url || '')}')">Message</button>
+          </div>
         </div>
       `).join('');
     }
