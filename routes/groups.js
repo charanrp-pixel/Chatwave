@@ -127,6 +127,29 @@ router.get('/:id/members', requireAuth, async (req, res) => {
   }
 });
 
+// Rename group (admin/creator only)
+router.patch('/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  const userId = req.user.id;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+  try {
+    const memberCheck = await pool.query(
+      'SELECT role FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+    if (memberCheck.rows.length === 0) return res.status(403).json({ error: 'Not a member' });
+    const result = await pool.query(
+      'UPDATE groups SET name = $1 WHERE id = $2 RETURNING *',
+      [name.trim(), id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Rename group error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Delete group / Leave group
 router.delete('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;

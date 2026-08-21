@@ -621,7 +621,129 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 .dashboard-tip { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
 
+/* ═══ GROUP INFO PANEL ═══════════════════════════════════════════════════════ */
+.group-info-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 500;
+  backdrop-filter: blur(2px);
+}
+.group-info-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 320px;
+  background: #fff;
+  z-index: 501;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+.group-info-panel.open {
+  transform: translateX(0);
+}
+.group-info-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f0f0f5;
+}
+.group-info-header h3 {
+  font-size: 16px; font-weight: 700; color: var(--text);
+}
+.group-info-hero {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid #f0f0f5;
+  background: linear-gradient(180deg, #f8f7ff 0%, #fff 100%);
+}
+.group-info-icon {
+  font-size: 52px; margin-bottom: 14px;
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(240,93,251,0.25);
+}
+.group-name-edit-wrap {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+}
+.group-name-input {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 600;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+}
+.group-name-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+.group-name-save-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 9px 14px;
+  background: var(--primary); color: white;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.group-name-save-btn:hover { background: var(--primary-dark); }
+.group-info-section {
+  flex: 1; overflow-y: auto; padding: 20px;
+}
+.group-info-section-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--text); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 12px;
+}
+.group-members-list { display: flex; flex-direction: column; gap: 4px; }
+.group-member-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+.group-member-row:hover { background: #f5f5f8; }
+.group-member-avatar-wrap { position: relative; flex-shrink: 0; }
+.group-member-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.group-member-avatar img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.group-member-online {
+  position: absolute; bottom: 1px; right: 1px;
+  width: 10px; height: 10px;
+  background: #22c55e; border: 2px solid white;
+  border-radius: 50%;
+}
+.group-member-info { flex: 1; min-width: 0; }
+.group-member-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.group-member-handle { font-size: 11px; color: var(--text-muted); }
+.group-member-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: #fef9c3; color: #854d0e;
+  flex-shrink: 0;
+}
+/* Group info button in header */
+.group-info-btn { color: var(--primary); }
+.group-info-btn:hover { background: #eef2ff !important; color: var(--primary) !important; }
+
+@media (max-width: 768px) {
+  .group-info-panel { width: 100%; }
+}
+
 /* ═══ GROUP MODAL ═══════════════════════════════════════════════════════════ */
+
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.45);

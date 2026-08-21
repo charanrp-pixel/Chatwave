@@ -344,6 +344,9 @@ async function openChat(type, id, name, participantId, avatar, sub) {
   const chatSubEl = document.getElementById('chatSub');
   if (chatSubEl) chatSubEl.textContent = sub || (type === 'dm' ? 'Online' : '');
   document.getElementById('chatOnlineDot')?.classList.toggle('hidden', type !== 'dm');
+  // Show group info button only for group chats
+  const groupInfoBtn = document.getElementById('groupInfoBtn');
+  if (groupInfoBtn) groupInfoBtn.classList.toggle('hidden', type !== 'group');
 
   // Load messages
   const messagesArea = document.getElementById('messagesArea');
@@ -971,6 +974,137 @@ async function deleteCurrentChat() {
   if (!activeChat) return;
   await deleteChat(activeChat.type, activeChat.id);
 }
+
+// ─── Group Info Panel ──────────────────────────────────────────────────────
+async function openGroupInfo() {
+  if (!activeChat || activeChat.type !== 'group') return;
+
+  const panel   = document.getElementById('groupInfoPanel');
+  const overlay = document.getElementById('groupInfoOverlay');
+  const nameInput = document.getElementById('groupInfoNameInput');
+  const statusEl = document.getElementById('groupInfoNameStatus');
+
+  // Pre-fill current name
+  nameInput.value = activeChat.name || '';
+  if (statusEl) statusEl.textContent = '';
+
+  // Show overlay + slide in panel
+  overlay?.classList.remove('hidden');
+  panel?.classList.remove('hidden');
+  requestAnimationFrame(() => panel?.classList.add('open'));
+
+  // Load members
+  await renderGroupMembers(activeChat.id);
+}
+
+function closeGroupInfo(e) {
+  // If called from overlay click, only close if clicking the overlay itself
+  if (e && e.target !== document.getElementById('groupInfoOverlay')) return;
+  const panel   = document.getElementById('groupInfoPanel');
+  const overlay = document.getElementById('groupInfoOverlay');
+  panel?.classList.remove('open');
+  setTimeout(() => {
+    panel?.classList.add('hidden');
+    overlay?.classList.add('hidden');
+  }, 280); // match CSS transition duration
+}
+
+async function renderGroupMembers(groupId) {
+  const listEl  = document.getElementById('groupInfoMembersList');
+  const countEl = document.getElementById('groupInfoMemberCount');
+  if (!listEl) return;
+  listEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Loading...</p>';
+
+  try {
+    const res = await fetch(`/api/groups/${groupId}/members`);
+    if (!res.ok) throw new Error('Failed to load members');
+    const members = await res.json();
+
+    if (countEl) countEl.textContent = `(${members.length})`;
+
+    if (members.length === 0) {
+      listEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">No members found.</p>';
+      return;
+    }
+
+    listEl.innerHTML = members.map(m => {
+      const initials = (m.display_name || m.username || '?')[0].toUpperCase();
+      const avatarHtml = m.avatar_url
+        ? `<img src="${escHtml(m.avatar_url)}" alt="">`
+        : initials;
+      const onlineDot = m.is_online
+        ? `<span class="group-member-online"></span>` : '';
+      const isMe = m.id === currentUser?.id;
+      const badge = m.role === 'admin'
+        ? `<span class="group-member-badge">👑 Admin</span>` : '';
+      const meTag = isMe ? ' <span style="font-size:10px;color:var(--text-muted);">(you)</span>' : '';
+
+      return `
+        <div class="group-member-row">
+          <div class="group-member-avatar-wrap">
+            <div class="group-member-avatar">${avatarHtml}</div>
+            ${onlineDot}
+          </div>
+          <div class="group-member-info">
+            <div class="group-member-name">${escHtml(m.display_name || m.username)}${meTag}</div>
+            <div class="group-member-handle">@${escHtml(m.username || 'unknown')}</div>
+          </div>
+          ${badge}
+        </div>`;
+    }).join('');
+  } catch (err) {
+    listEl.innerHTML = `<p style="color:#ef4444;font-size:13px;text-align:center;padding:20px;">Could not load members.</p>`;
+  }
+}
+
+async function saveGroupName() {
+  if (!activeChat || activeChat.type !== 'group') return;
+  const input    = document.getElementById('groupInfoNameInput');
+  const statusEl = document.getElementById('groupInfoNameStatus');
+  const saveBtn  = document.getElementById('groupInfoSaveBtn');
+  const newName  = input?.value.trim();
+
+  if (!newName) {
+    if (statusEl) { statusEl.textContent = 'Name cannot be empty.'; statusEl.style.color = '#ef4444'; }
+    return;
+  }
+  if (newName === activeChat.name) {
+    if (statusEl) { statusEl.textContent = 'No changes made.'; statusEl.style.color = 'var(--text-muted)'; }
+    return;
+  }
+
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+  if (statusEl) statusEl.textContent = '';
+
+  try {
+    const res = await fetch(`/api/groups/${activeChat.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    // Update local state + UI
+    activeChat.name = data.name;
+    const chatNameEl = document.getElementById('chatName');
+    if (chatNameEl) chatNameEl.textContent = data.name;
+    const grp = groups.find(g => g.id === activeChat.id);
+    if (grp) grp.name = data.name;
+    renderConversationList();
+
+    if (statusEl) { statusEl.textContent = '✅ Name updated!'; statusEl.style.color = '#16a34a'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = err.message || 'Error saving.'; statusEl.style.color = '#ef4444'; }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save`;
+    }
+  }
+}
+
 
 async function logout() {
   try {
