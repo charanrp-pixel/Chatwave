@@ -513,6 +513,7 @@ function setupNav() {
 
 // ─── Contacts / Friends ────────────────────────────────────────────────────
 function renderContacts() {
+  setupFriendSearch(); // wire up live-search dropdown
   const friendsListEl = document.getElementById('contactsList');
   const pendingContainer = document.getElementById('pendingRequestsContainer');
   const pendingListEl = document.getElementById('pendingRequestsList');
@@ -573,6 +574,9 @@ async function sendFriendRequest() {
 
   if (!username) return;
 
+  // Close dropdown
+  closeFriendDropdown();
+
   btn.disabled = true;
   btn.textContent = 'Sending...';
   status.textContent = '';
@@ -586,7 +590,7 @@ async function sendFriendRequest() {
     const data = await res.json();
     
     if (res.ok) {
-      status.textContent = 'Friend request sent!';
+      status.textContent = '✅ Friend request sent!';
       status.style.color = 'var(--primary)';
       input.value = '';
     } else {
@@ -600,6 +604,93 @@ async function sendFriendRequest() {
     btn.disabled = false;
     btn.textContent = 'Send Request';
   }
+}
+
+// ─── Friend Username Search / Suggest Dropdown ────────────────────────────
+let friendSearchTimer = null;
+
+function setupFriendSearch() {
+  const input = document.getElementById('addFriendInput');
+  const dropdown = document.getElementById('friendSuggestDropdown');
+  if (!input || !dropdown || input._friendSearchSetup) return;
+  input._friendSearchSetup = true;
+
+  input.addEventListener('input', () => {
+    clearTimeout(friendSearchTimer);
+    const q = input.value.trim();
+    if (q.length < 1) { closeFriendDropdown(); return; }
+    friendSearchTimer = setTimeout(() => fetchFriendSuggestions(q), 220);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFriendDropdown();
+    if (e.key === 'Enter') sendFriendRequest();
+  });
+
+  // Close when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      closeFriendDropdown();
+    }
+  }, { capture: true });
+}
+
+async function fetchFriendSuggestions(q) {
+  const dropdown = document.getElementById('friendSuggestDropdown');
+  if (!dropdown) return;
+
+  try {
+    const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderFriendDropdown(data.users || []);
+  } catch (e) { /* silent */ }
+}
+
+function renderFriendDropdown(users) {
+  const dropdown = document.getElementById('friendSuggestDropdown');
+  if (!dropdown) return;
+
+  if (users.length === 0) {
+    dropdown.innerHTML = `<div class="friend-suggest-empty">No users found</div>`;
+    dropdown.classList.remove('hidden');
+    return;
+  }
+
+  const friendIds = new Set(friends.map(f => f.id));
+
+  dropdown.innerHTML = users.map(u => {
+    const initials = (u.display_name || u.username || '?')[0].toUpperCase();
+    const avatarHtml = u.avatar_url
+      ? `<div class="friend-suggest-avatar"><img src="${escHtml(u.avatar_url)}" alt=""></div>`
+      : `<div class="friend-suggest-avatar">${initials}</div>`;
+    const isFriend = friendIds.has(u.id);
+    const badge = isFriend ? `<span class="friend-suggest-badge">Friends</span>` : '';
+
+    return `
+      <div class="friend-suggest-item" onclick="selectFriendSuggestion('${escHtml(u.username)}')">
+        ${avatarHtml}
+        <div class="friend-suggest-body">
+          <div class="friend-suggest-name">${escHtml(u.display_name || u.username)}</div>
+          <div class="friend-suggest-handle">@${escHtml(u.username)}</div>
+        </div>
+        ${badge}
+      </div>`;
+  }).join('');
+
+  dropdown.classList.remove('hidden');
+}
+
+function selectFriendSuggestion(username) {
+  const input = document.getElementById('addFriendInput');
+  if (input) input.value = username;
+  closeFriendDropdown();
+  input?.focus();
+}
+
+function closeFriendDropdown() {
+  const dropdown = document.getElementById('friendSuggestDropdown');
+  if (dropdown) dropdown.classList.add('hidden');
 }
 
 async function acceptFriendRequest(id) {

@@ -6,7 +6,7 @@
   <title>ChatWave — Messaging</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css?v=15" />
+  <link rel="stylesheet" href="/css/app.css?v=16" />
 </head>
 <body>
 
@@ -187,9 +187,12 @@
       
       <div style="padding: 24px;">
         <h3 style="font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px;">Add a Friend</h3>
-        <div style="display:flex; gap:12px;">
-          <input type="text" id="addFriendInput" class="form-input" placeholder="Enter username..." autocomplete="off" />
-          <button class="btn-primary" id="addFriendBtn" style="white-space: nowrap;" onclick="sendFriendRequest()">Send Request</button>
+        <div style="display:flex; gap:12px; align-items: flex-start;">
+          <div class="friend-search-wrap">
+            <input type="text" id="addFriendInput" class="form-input" placeholder="Search by username..." autocomplete="off" />
+            <div class="friend-suggest-dropdown hidden" id="friendSuggestDropdown"></div>
+          </div>
+          <button class="btn-primary" id="addFriendBtn" style="white-space: nowrap; height: 42px;" onclick="sendFriendRequest()">Send Request</button>
         </div>
         <div id="addFriendStatus" style="margin-top: 8px; font-size: 13px;"></div>
       </div>

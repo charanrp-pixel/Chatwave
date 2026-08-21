@@ -510,6 +510,57 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 }
 .start-chat-btn:hover { background: var(--primary); color: white; }
 
+/* ─── Add Friend Search Dropdown ───────────────────────────────────────── */
+.friend-search-wrap {
+  position: relative;
+  flex: 1;
+}
+.friend-suggest-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  z-index: 100;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.friend-suggest-dropdown.hidden { display: none; }
+.friend-suggest-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid #f3f4f6;
+}
+.friend-suggest-item:last-child { border-bottom: none; }
+.friend-suggest-item:hover { background: var(--primary-light); }
+.friend-suggest-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.friend-suggest-avatar img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+.friend-suggest-body { flex: 1; min-width: 0; }
+.friend-suggest-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.friend-suggest-handle { font-size: 12px; color: var(--text-muted); }
+.friend-suggest-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: #dcfce7; color: #16a34a;
+}
+.friend-suggest-empty {
+  padding: 16px; text-align: center;
+  font-size: 13px; color: var(--text-muted);
+}
+
 /* ═══ DASHBOARD VIEW ════════════════════════════════════════════════════════ */
 .dashboard-view { flex: 1; background: var(--chat-bg); display: flex; align-items: center; justify-content: center; }
 .dashboard-content { text-align: center; max-width: 480px; padding: 40px; }
