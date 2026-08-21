@@ -368,7 +368,23 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 }
 .chat-name { font-size: 15px; font-weight: 700; color: var(--text); }
 .chat-sub { font-size: 12px; color: var(--text-muted); }
-.chat-actions { display: flex; gap: 4px; }
+.chat-actions { display: flex; align-items: center; gap: 6px; }
+
+/* Voice / Video call buttons in chat header */
+.call-icon-btn {
+  color: #16a34a;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.call-icon-btn:hover {
+  background: #dcfce7 !important;
+  color: #16a34a !important;
+  transform: scale(1.1);
+}
+.call-icon-btn.video { color: var(--primary); }
+.call-icon-btn.video:hover {
+  background: #eef2ff !important;
+  color: var(--primary) !important;
+}
 
 /* Messages Area */
 .messages-area {
