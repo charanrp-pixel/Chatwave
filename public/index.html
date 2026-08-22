@@ -3,248 +3,478 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChatWave | Secure Login</title>
-  <meta name="description" content="Sign in to ChatWave. Professional, secure, and real-time messaging.">
+  <title>ChatWave — Sign In</title>
+  <meta name="description" content="Sign in to ChatWave for secure, real-time professional messaging.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet">
   <style>
+    /* ─── Design Tokens ─── */
     :root {
-      --bg: #0a0e1a;
-      --panel: #0f1524;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #f0f4ff;
-      --text-muted: #8892b0;
-      --accent: #6c63ff;
-      --accent-hover: #5a52d5;
-      --glass: rgba(255, 255, 255, 0.03);
+      --bg:         #07091a;
+      --surface:    #0d1025;
+      --surface-2:  #131728;
+      --border:     rgba(255,255,255,0.07);
+      --border-2:   rgba(255,255,255,0.12);
+      --accent:     #6c63ff;
+      --accent-2:   #a78bfa;
+      --accent-glow:rgba(108,99,255,0.22);
+      --text:       #f0f4ff;
+      --text-2:     #9aa3bf;
+      --text-3:     #4a5270;
+      --green:      #22c55e;
+      --red:        #ef4444;
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+      --radius-xl:  22px;
+      --ease:       cubic-bezier(.4,0,.2,1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-      background-image: 
-        radial-gradient(circle at top right, rgba(108, 99, 255, 0.05), transparent 40%),
-        radial-gradient(circle at bottom left, rgba(167, 139, 250, 0.05), transparent 40%);
-      -webkit-font-smoothing: antialiased;
+    html,body {
+      height:100%;
+      font-family:'Inter',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
     }
 
-    .login-wrapper {
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
+    /* ─── Page Shell ─── */
+    .page {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      min-height:100vh;
     }
 
-    .login-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(10px);
+    /* ─── Left Panel ─── */
+    .left {
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      padding:48px 56px;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      overflow:hidden;
     }
 
+    /* subtle gradient blobs */
+    .left::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 10%, rgba(108,99,255,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 90%, rgba(167,139,250,.07) 0%, transparent 60%);
+      pointer-events:none;
+    }
+
+    .left-content { position:relative; z-index:1; }
+
+    /* Brand */
     .brand {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 40px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:80px;
     }
 
-    .logo-container {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--accent), #a78bfa);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 24px rgba(108, 99, 255, 0.25);
+    .brand-icon {
+      width:40px;
+      height:40px;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      box-shadow:0 0 24px var(--accent-glow);
+      flex-shrink:0;
     }
 
-    .title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
+    .brand-name {
+      font-size:1.15rem;
+      font-weight:700;
+      letter-spacing:-.025em;
+      background:linear-gradient(135deg,var(--text),var(--accent-2));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
     }
 
-    .subtitle {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      text-align: center;
+    /* Headline */
+    .tagline {
+      font-size:clamp(1.8rem,2.8vw,2.6rem);
+      font-weight:800;
+      line-height:1.18;
+      letter-spacing:-.04em;
+      margin-bottom:18px;
     }
 
+    .tagline em {
+      font-style:normal;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    .tagline-sub {
+      font-size:.95rem;
+      color:var(--text-2);
+      line-height:1.65;
+      max-width:360px;
+    }
+
+    /* Feature list */
+    .feature-list {
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      margin-top:48px;
+    }
+
+    .feature-row {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .feature-icon {
+      width:34px;
+      height:34px;
+      border-radius:8px;
+      background:rgba(108,99,255,.1);
+      border:1px solid rgba(108,99,255,.2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+    }
+
+    .feature-icon svg { color:var(--accent-2); }
+
+    .feature-text {
+      font-size:.875rem;
+      color:var(--text-2);
+      line-height:1.4;
+    }
+
+    .feature-text strong {
+      color:var(--text);
+      font-weight:600;
+    }
+
+    /* Left footer */
+    .left-footer {
+      position:relative;
+      z-index:1;
+      font-size:.75rem;
+      color:var(--text-3);
+    }
+
+    /* ─── Right Panel ─── */
+    .right {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:48px 56px;
+      background:var(--bg);
+    }
+
+    .login-box {
+      width:100%;
+      max-width:380px;
+    }
+
+    /* Section label */
+    .section-label {
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      background:rgba(108,99,255,.08);
+      border:1px solid rgba(108,99,255,.18);
+      border-radius:999px;
+      padding:4px 12px;
+      font-size:.7rem;
+      font-weight:600;
+      letter-spacing:.07em;
+      text-transform:uppercase;
+      color:var(--accent-2);
+      margin-bottom:22px;
+    }
+
+    .status-dot {
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 6px rgba(34,197,94,.6);
+    }
+
+    .login-title {
+      font-size:1.75rem;
+      font-weight:700;
+      letter-spacing:-.03em;
+      line-height:1.2;
+      margin-bottom:8px;
+    }
+
+    .login-sub {
+      font-size:.9rem;
+      color:var(--text-2);
+      line-height:1.6;
+      margin-bottom:36px;
+    }
+
+    /* Error */
+    .error-banner {
+      display:none;
+      align-items:center;
+      gap:9px;
+      background:rgba(239,68,68,.08);
+      border:1px solid rgba(239,68,68,.2);
+      border-radius:var(--radius-md);
+      padding:11px 14px;
+      color:#fca5a5;
+      font-size:.82rem;
+      margin-bottom:20px;
+    }
+
+    /* Google button */
     .btn-google {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      width: 100%;
-      padding: 14px;
-      background: var(--glass);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 0.95rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      cursor: pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      width:100%;
+      padding:14px 20px;
+      background:var(--surface-2);
+      border:1px solid var(--border-2);
+      border-radius:var(--radius-md);
+      color:var(--text);
+      font-size:.92rem;
+      font-weight:600;
+      font-family:'Inter',sans-serif;
+      text-decoration:none;
+      cursor:pointer;
+      transition:background .18s var(--ease),
+                 border-color .18s var(--ease),
+                 box-shadow .18s var(--ease),
+                 transform .15s var(--ease);
+      position:relative;
+      overflow:hidden;
+      letter-spacing:-.01em;
     }
+
+    .btn-google svg { flex-shrink:0; }
+    .btn-google span { position:relative; z-index:1; }
 
     .btn-google:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-1px);
+      background:rgba(255,255,255,.07);
+      border-color:rgba(108,99,255,.4);
+      box-shadow:0 0 0 3px rgba(108,99,255,.08), 0 6px 20px rgba(0,0,0,.25);
+      transform:translateY(-1px);
     }
 
-    .btn-google:active {
-      transform: translateY(0);
-    }
+    .btn-google:active { transform:translateY(0); }
 
+    /* Divider */
     .divider {
-      display: flex;
-      align-items: center;
-      margin: 28px 0;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:26px 0;
+      font-size:.72rem;
+      color:var(--text-3);
+      letter-spacing:.05em;
+      text-transform:uppercase;
     }
 
-    .divider::before,
-    .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-    
-    .divider::before { margin-right: 12px; }
-    .divider::after { margin-left: 12px; }
-
-    .features {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      margin-bottom: 24px;
+    .divider::before,.divider::after {
+      content:'';
+      flex:1;
+      height:1px;
+      background:var(--border);
     }
 
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 500;
+    /* Trust badges */
+    .trust-row {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
     }
 
-    .feature-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
+    .trust-card {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      padding:14px 10px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius-md);
+      transition:border-color .2s var(--ease);
     }
 
-    .error-banner {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 8px;
-      padding: 12px;
-      color: #fca5a5;
-      font-size: 0.85rem;
-      margin-bottom: 24px;
+    .trust-card:hover { border-color:var(--border-2); }
+
+    .trust-emoji { font-size:18px; }
+
+    .trust-label {
+      font-size:.68rem;
+      font-weight:600;
+      color:var(--text-2);
+      text-align:center;
     }
 
-    .footer {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-    
-    .footer a {
-      color: var(--text-muted);
-      text-decoration: underline;
-      text-decoration-color: rgba(136, 146, 176, 0.4);
-      text-underline-offset: 3px;
-      transition: color 0.2s;
+    /* Footer */
+    .login-footer {
+      margin-top:28px;
+      font-size:.72rem;
+      color:var(--text-3);
+      text-align:center;
+      line-height:1.65;
     }
 
-    .footer a:hover {
-      color: var(--text);
+    .login-footer a {
+      color:var(--text-2);
+      text-decoration:underline;
+      text-underline-offset:2px;
+      text-decoration-color:rgba(154,163,191,.3);
+      transition:color .15s;
+    }
+
+    .login-footer a:hover { color:var(--text); }
+
+    /* ─── Responsive ─── */
+    @media (max-width:800px) {
+      .page { grid-template-columns:1fr; }
+      .left { display:none; }
+      .right { min-height:100vh; padding:40px 28px; }
+      .login-box { max-width:100%; }
     }
   </style>
 </head>
 <body>
 
-  <div class="login-wrapper">
-    <div class="login-card">
+<div class="page">
+
+  <!-- ══ Left: Brand & features ══ -->
+  <div class="left">
+    <div class="left-content">
       <div class="brand">
-        <div class="logo-container">💬</div>
-        <h1 class="title">Welcome to ChatWave</h1>
-        <p class="subtitle">Secure, professional communication.</p>
+        <div class="brand-icon">💬</div>
+        <span class="brand-name">ChatWave</span>
       </div>
 
+      <h1 class="tagline">
+        Communication<br>that feels <em>effortless.</em>
+      </h1>
+      <p class="tagline-sub">
+        One platform for all your conversations. Fast, private, and built for the way you work.
+      </p>
+
+      <div class="feature-list">
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <div class="feature-text"><strong>Instant delivery</strong> — Messages arrive in real-time with no lag.</div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="feature-text"><strong>End-to-end privacy</strong> — Your data stays between you and them.</div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <div class="feature-text"><strong>Access anywhere</strong> — Synced across all your devices.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="left-footer">© 2026 ChatWave · All rights reserved</div>
+  </div>
+
+  <!-- ══ Right: Login form ══ -->
+  <div class="right">
+    <div class="login-box">
+
+      <div class="section-label">
+        <div class="status-dot"></div>
+        Secure Sign-In
+      </div>
+
+      <h2 class="login-title">Welcome back</h2>
+      <p class="login-sub">Sign in to access your workspace and conversations.</p>
+
       <div class="error-banner" id="errorBanner">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
         Authentication failed. Please try again.
       </div>
 
       <a href="/auth/google" class="btn-google" id="googleBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
-        <span>Sign in with Google</span>
+        <span>Continue with Google</span>
       </a>
 
-      <div class="divider">Features</div>
+      <div class="divider">Why ChatWave</div>
 
-      <div class="features">
-        <div class="feature-item">
-          <div class="feature-dot"></div>
-          Real-time
+      <div class="trust-row">
+        <div class="trust-card">
+          <div class="trust-emoji">⚡</div>
+          <div class="trust-label">Real-time</div>
         </div>
-        <div class="feature-item">
-          <div class="feature-dot" style="background: #22c55e;"></div>
-          Secure
+        <div class="trust-card">
+          <div class="trust-emoji">🔒</div>
+          <div class="trust-label">Encrypted</div>
         </div>
-        <div class="feature-item">
-          <div class="feature-dot" style="background: #3b82f6;"></div>
-          Cloud Sync
+        <div class="trust-card">
+          <div class="trust-emoji">🌐</div>
+          <div class="trust-label">Everywhere</div>
         </div>
       </div>
-    </div>
 
-    <div class="footer">
-      By signing in, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+      <p class="login-footer">
+        By continuing, you agree to our
+        <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.<br>
+        No password required — your Google account is enough.
+      </p>
+
     </div>
   </div>
 
-  <script>
-    if (new URLSearchParams(window.location.search).get('error') === 'auth_failed') {
-      document.getElementById('errorBanner').style.display = 'flex';
-    }
-    fetch('/auth/me').then(r => r.json()).then(d => {
-      if (d.user) window.location.href = d.user.username ? '/app.html' : '/setup.html';
-    });
-  </script>
+</div>
+
+<script>
+  if (new URLSearchParams(window.location.search).get('error') === 'auth_failed') {
+    document.getElementById('errorBanner').style.display = 'flex';
+  }
+  fetch('/auth/me').then(r => r.json()).then(d => {
+    if (d.user) window.location.href = d.user.username ? '/app.html' : '/setup.html';
+  });
+</script>
 </body>
 </html>
